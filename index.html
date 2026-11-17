@@ -10458,7 +10458,103 @@ api=function(path,body){
 })();
 </script>
 
+<script>
+/* ══════════ 開回競態防護 v1：舊回覆回來不許蓋掉現在的畫面 ══════════ */
+(function(){
+'use strict';
+if(window.__roundRaceV1)return;
+window.__roundRaceV1=1;
 
+/* ── ① openRound 換成 token 版：過時的呼叫直接放棄 ── */
+var _token=0, _orPrev=window.openRound||openRound;
+window.openRound=async function(subject,rd,applySaved){
+  var my=++_token;
+  var r=await _orPrev.apply(this,arguments);
+  /* 舊呼叫回來時，若期間已經又開了別回，放棄（不蓋畫面） */
+  if(my!==_token)return null;
+  try{
+    var key=subject+'/'+rd.label;
+    if(docEl.dataset.rkey&&docEl.dataset.rkey!==key){
+      /* docEl 被舊呼叫蓋掉 → 用最新一次的資料重開一次 */
+      return openRound(subject,rd,applySaved!==false);
+    }
+  }catch(e){}
+  return r;
+};
+openRound=window.openRound;
+
+/* ── ② 存檔防護：畫面與 current 不同回時，絕不寫入 ── */
+function keyOf(c){
+  if(!c)return '';
+  if(c.isExam&&!c.origLabel)return 'exam/'+(c.examKey||'');
+  return (c.origSubject||c.subject||'')+'/'+(c.origLabel||c.label||'');
+}
+var _snPrev=saveNotes;
+saveNotes=function(){
+  var c=current;
+  if(c&&!c.isTrend){
+    var k=keyOf(c);
+    if(k&&docEl.dataset.rkey&&docEl.dataset.rkey!==k)return Promise.resolve();
+  }
+  return _snPrev.apply(this,arguments);
+};
+var _apPrev=autoSavePaper;
+autoSavePaper=function(){
+  var c=current;
+  if(c&&!c.isTrend){
+    var k=keyOf(c);
+    if(k&&docEl.dataset.rkey&&docEl.dataset.rkey!==k)return Promise.resolve();
+  }
+  return _apPrev.apply(this,arguments);
+};
+var _fkPrev=flushNotesKeepalive;
+flushNotesKeepalive=function(){
+  var c=current;
+  if(c&&!c.isTrend){
+    var k=keyOf(c);
+    if(k&&docEl.dataset.rkey&&docEl.dataset.rkey!==k)return;
+  }
+  return _fkPrev.apply(this,arguments);
+};
+
+/* ── ③ 蓋章：docEl 載入哪一回就記哪一回 ── */
+var _cvtPrev=convertDocToExamStyle;
+convertDocToExamStyle=function(root){
+  try{
+    if(root===docEl||root===undefined){
+      var h=docEl.querySelector('h1');
+      if(h){
+        var m=(h.textContent||'').match(/(^[^0-9\n]+?)\s*(\d{3})\s*[-－]\s*(\d)/);
+        if(m)docEl.dataset.rkey=m[1]+'/'+m[2]+'-'+m[3];
+      }
+      if(typeof current!=='undefined'&&current&&!current.isTrend&&!current.isExam&&!docEl.dataset.rkey){
+        docEl.dataset.rkey=keyOf(current);
+      }
+    }
+  }catch(e){}
+  return _cvtPrev.apply(this,arguments);
+};
+convertDocToExamStyle=window.__roundRaceV1&&convertDocToExamStyle;
+
+/* ── ④ 對照鈕防呆：開對照前確認畫面與 current 是同一回 ── */
+document.addEventListener('click',function(e){
+  var b=e.target&&e.target.closest?e.target.closest('#btnCompare'):null;
+  if(!b)return;
+  var c=current;
+  if(!c)return;
+  var k=keyOf(c);
+  if(k&&docEl.dataset.rkey&&docEl.dataset.rkey!==k){
+    /* 畫面跑掉：自動把該回重新開一次，再開對照 */
+    e.preventDefault();e.stopPropagation();
+    showToast('⚖️ 偵測到畫面與筆記不同步，正在重新載入…');
+    var rd=null;
+    (DB.subjects||[]).forEach(function(s){(s.rounds||[]).forEach(function(x){
+      if(s.name===c.subject&&x.label===c.label)rd=x;});});
+    if(rd){openRound(c.subject,rd).then(function(){setTimeout(function(){b.click();},400);});}
+  }
+},true);
+})();
+</script>
 
 
 </body>
