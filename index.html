@@ -850,18 +850,29 @@ async function api(path,body){
     const f=await loadRound(body.file);
     return f?{ok:true,html:f}:{ok:false,msg:'找不到檔案'};
   }
-  if(path==='/api/question'){
+   if(path==='/api/question'){
     const html=await loadRound(body.file);
     if(!html)return {ok:false,msg:'找不到題目'};
     const num=parseInt(body.num)||0;
-    const m=html.match(new RegExp('<h2[^>]*>\\\\s*第\\\\s*'+num+'\\\\s*[題题]','i'));
-    if(!m)return {ok:false,msg:'找不到題目'};
-    let frag=html.slice(m.index);
-    const rest=frag.slice(6);
-    const nm=rest.match(/<h2[^>]*>\s*第\s*\d{1,3}\s*[題题]/i);
-    if(nm)frag=frag.slice(0,nm.index+6);
-    return {ok:true,html:frag};
+    let frag='';
+    try{
+      if(typeof findQBlock==='function'){
+        const b=findQBlock(html,num);
+        if(b)frag=b.html;
+      }
+    }catch(e){}
+    if(!frag){
+      const m=html.match(new RegExp('<h2[^>]*>\\s*第\\s*'+num+'\\s*[題题]','i'));
+      if(m){
+        frag=html.slice(m.index);
+        const rest=frag.slice(6);
+        const nm=rest.match(/<h2[^>]*>\s*第\s*\d{1,3}\s*[題题]/i);
+        if(nm)frag=frag.slice(0,nm.index+6);
+      }
+    }
+    return frag?{ok:true,html:frag}:{ok:false,msg:'找不到題目'};
   }
+
   if(path==='/api/is_unlocked'){
     const v=await idbGet('unlocked');
     return {ok:!!v};
