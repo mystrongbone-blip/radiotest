@@ -854,7 +854,7 @@ async function api(path,body){
     const html=await loadRound(body.file);
     if(!html)return {ok:false,msg:'找不到題目'};
     const num=parseInt(body.num)||0;
-    const m=html.match(new RegExp('<h2[^>]*>\\s*第\\s*'+num+'\\s*[題题]','i'));
+    const m=html.match(new RegExp('<h2[^>]*>\\\\s*第\\\\s*'+num+'\\\\s*[題题]','i'));
     if(!m)return {ok:false,msg:'找不到題目'};
     let frag=html.slice(m.index);
     const rest=frag.slice(6);
@@ -874,7 +874,7 @@ async function api(path,body){
     return {ok:true}; /* 手機版沒有資料夾設定，視為就緒以跳過提示框 */
   }
   if(path==='/api/unlock_done'){
-    return {ok:true}; /* 手機版不解發資料夾選擇 */
+    return {ok:true}; /* 手機版不觸發資料夾選擇 */
   }
   if(path==='/api/remind_snooze'){_SNOOZE=true;return {ok:true};}
   if(path==='/api/remind_reset'){_SNOOZE=false;return {ok:true};}
@@ -8905,7 +8905,7 @@ background:#0e1116;color:#8fa3ba;font-size:13px;transition:opacity .25s}
   if (window.__posSimBooted) return;
   window.__posSimBooted = 1;
 
-  const SIM_SRC = '/sim/posSim.html';   /* 模擬器路徑；編輯模式加 ?edit=1；請以 http(s) 開 */
+  const SIM_SRC = './sim/posSim.html';   /* 模擬器路徑；編輯模式加 ?edit=1；請以 http(s) 開 */
   const PRELOAD = true;
   const PRELOAD_DELAY = 2500;
   const LS_RECT = 'posim.float.rect';
