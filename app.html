@@ -760,6 +760,62 @@ function runKeyLock(){
 showLock('', 'checking');
 runKeyLock();
 </script>
+
+<script>
+(function(){
+'use strict';
+if(window.__docStable)return; window.__docStable=1;
+var IDS={doc:1};                 /* 保護的容器;發現別的容器也這樣就加進來 */
+var last=new Map(),skipped=0,t0=0;
+
+function isT(el){return el&&el.nodeType===1&&el.id&&IDS[el.id]}
+function saveScroll(el){
+  var s={win:window.scrollY,el:null,top:0},p=el;
+  while(p&&p!==document.body){
+    var cs=getComputedStyle(p);
+    if(/(auto|scroll|overlay)/.test(cs.overflowY)&&p.scrollHeight>p.clientHeight+4){s.el=p;s.top=p.scrollTop;break}
+    p=p.parentElement;
+  }
+  return s;
+}
+function restore(s){
+  if(s.el)s.el.scrollTop=s.top;
+  if(window.scrollY!==s.win)window.scrollTo(0,s.win);
+}
+function write(el,fn,v){
+  if(last.get(el)===v){          /* 內容一模一樣 → 直接擋掉,不重建 */
+    skipped++;
+    var n=performance.now();
+    if(n-t0>3000){console.info('[docStable] 已擋掉 '+skipped+' 次重複重建');t0=n}
+    return;
+  }
+  var s=saveScroll(el);
+  fn.call(el,v);
+  last.set(el,v);
+  restore(s);                    /* 真的要重寫,捲動位置也不會跑掉 */
+}
+var d=Object.getOwnPropertyDescriptor(Element.prototype,'innerHTML');
+Object.defineProperty(Element.prototype,'innerHTML',{
+  set:function(v){if(isT(this)&&typeof v==='string')write(this,d.set,v);else d.set.call(this,v)},
+  get:d.get,configurable:true
+});
+function wrap(proto,name){
+  var o=proto[name];if(!o)return;
+  proto[name]=function(){
+    if(isT(this)){
+      if(arguments.length===1&&typeof arguments[0]==='string')return write(this,o,arguments[0]);
+      var s=saveScroll(this),r=o.apply(this,arguments);restore(s);return r;
+    }
+    return o.apply(this,arguments);
+  };
+}
+wrap(Element.prototype,'replaceChildren');
+wrap(Element.prototype,'append');
+wrap(Node.prototype,'appendChild');
+console.log('[docStable] ready');
+})();
+</script>
+
 <script>
 'use strict';
 
