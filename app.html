@@ -5,6 +5,76 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#14151b">
 <title>放射師國考神器</title>
+<script>
+/* ══════════ 開回競態防護 v2.1(取代 v2)══════════ */
+(function(){
+'use strict';
+if(window.__roundRaceV21)return;
+window.__roundRaceV21=1;
+function keyOf(c){
+  if(!c)return '';
+  if(c.isExam&&!c.origLabel)return 'exam/'+(c.examKey||'');
+  return (c.origSubject||c.subject||'')+'/'+(c.origLabel||c.label||'');
+}
+/* ── ① 蓋章:一律以 current 為準,每次渲染都蓋新章。
+      不看 h1(106~110 無標題也沒問題);作答紀錄頁也蓋,避免殘章誤擋存檔 ── */
+var _cvtPrev=convertDocToExamStyle;
+convertDocToExamStyle=function(root){
+  try{
+    if((root===docEl||root===undefined)&&typeof current!=='undefined'&&current
+       &&!current.isTrend&&!current.isQA){
+      docEl.dataset.rkey=keyOf(current);
+    }
+  }catch(e){}
+  return _cvtPrev.apply(this,arguments);
+};
+/* ── ② openRound:token 防過時呼叫蓋畫面;無遞迴重開 ── */
+var _token=0,_lastArgs=null;
+var _orPrev=openRound;
+openRound=async function(subject,rd,applySaved){
+  _lastArgs={subject:subject,rd:rd,applySaved:applySaved!==false};
+  var my=++_token;
+  var r=await _orPrev.apply(this,arguments);
+  if(my===_token)return r;
+  var la=_lastArgs;
+  if(la&&current&&!current.isTrend&&!current.isExam&&!current.isQA
+     &&current.subject===la.subject&&current.label===la.rd.label){
+    return openRound(la.subject,la.rd,la.applySaved);
+  }
+  return r;
+};
+window.openRound=openRound;
+/* ── ③ 存檔防護:畫面與 current 不同回時不寫入 ── */
+var _snPrev=saveNotes;
+saveNotes=function(){
+  var c=current;
+  if(c&&!c.isTrend&&!c.isQA){
+    var k=keyOf(c);
+    if(k&&docEl.dataset.rkey&&docEl.dataset.rkey!==k)return Promise.resolve();
+  }
+  return _snPrev.apply(this,arguments);
+};
+var _apPrev=autoSavePaper;
+autoSavePaper=function(){
+  var c=current;
+  if(c&&!c.isTrend&&!c.isQA){
+    var k=keyOf(c);
+    if(k&&docEl.dataset.rkey&&docEl.dataset.rkey!==k)return Promise.resolve();
+  }
+  return _apPrev.apply(this,arguments);
+};
+var _fkPrev=flushNotesKeepalive;
+flushNotesKeepalive=function(){
+  var c=current;
+  if(c&&!c.isTrend&&!c.isQA){
+    var k=keyOf(c);
+    if(k&&docEl.dataset.rkey&&docEl.dataset.rkey!==k)return;
+  }
+  return _fkPrev.apply(this,arguments);
+};
+})();
+</script>
+
 <link rel="manifest" href="manifest.json">
 <style>
 :root{--bg:#14151b;--panel:#1a1b22;--border:#2b2d38;--text:#e8e8ee;--muted:#9aa0b0;--accent:#4f8cff;--accent2:#6ea8ff;--green:#39d98a;color-scheme:dark}
@@ -10459,50 +10529,40 @@ api=function(path,body){
 </script>
 
 <script>
-/* ══════════ 開回競態防護 v2(修正版)══════════ */
+/* ══════════ 開回競態防護 v1：舊回覆回來不許蓋掉現在的畫面 ══════════ */
 (function(){
 'use strict';
-if(window.__roundRaceV2)return;
-window.__roundRaceV2=1;
+if(window.__roundRaceV1)return;
+window.__roundRaceV1=1;
+
+/* ── ① openRound 換成 token 版：過時的呼叫直接放棄 ── */
+var _token=0, _orPrev=window.openRound||openRound;
+window.openRound=async function(subject,rd,applySaved){
+  var my=++_token;
+  var r=await _orPrev.apply(this,arguments);
+  /* 舊呼叫回來時，若期間已經又開了別回，放棄（不蓋畫面） */
+  if(my!==_token)return null;
+  try{
+    var key=subject+'/'+rd.label;
+    if(docEl.dataset.rkey&&docEl.dataset.rkey!==key){
+      /* docEl 被舊呼叫蓋掉 → 用最新一次的資料重開一次 */
+      return openRound(subject,rd,applySaved!==false);
+    }
+  }catch(e){}
+  return r;
+};
+openRound=window.openRound;
+
+/* ── ② 存檔防護：畫面與 current 不同回時，絕不寫入 ── */
 function keyOf(c){
   if(!c)return '';
   if(c.isExam&&!c.origLabel)return 'exam/'+(c.examKey||'');
   return (c.origSubject||c.subject||'')+'/'+(c.origLabel||c.label||'');
 }
-/* ── ① 蓋章:一律以 current 為準,不再解析 h1(h1 前綴常和科目名不一致,舊版因此無限重開) ── */
-var _cvtPrev=convertDocToExamStyle;
-convertDocToExamStyle=function(root){
-  try{
-    if((root===docEl||root===undefined)&&typeof current!=='undefined'&&current
-       &&!current.isTrend&&!current.isExam&&!current.isQA){
-      docEl.dataset.rkey=keyOf(current);
-    }
-  }catch(e){}
-  return _cvtPrev.apply(this,arguments);
-};
-/* ── ② openRound:保留 token 防過時呼叫覆寫;移除遞迴重開 ── */
-var _token=0,_lastArgs=null;
-var _orPrev=openRound;
-openRound=async function(subject,rd,applySaved){
-  _lastArgs={subject:subject,rd:rd,applySaved:applySaved!==false};
-  var my=++_token;
-  var r=await _orPrev.apply(this,arguments);
-  if(my===_token)return r;                        /* 我就是最新一次,正常結束 */
-  /* 我是過時呼叫(使用者已經又開了別回):只有當 current 仍指著最新那回、
-     畫面又被我蓋掉時,才用最新參數重開一次(有快取,瞬間完成,不會循環) */
-  var la=_lastArgs;
-  if(la&&current&&!current.isTrend&&!current.isExam&&!current.isQA
-     &&current.subject===la.subject&&current.label===la.rd.label){
-    return openRound(la.subject,la.rd,la.applySaved);
-  }
-  return r;
-};
-window.openRound=openRound;
-/* ── ③ 存檔防護:畫面與 current 不同回時不寫入(防舊畫面存進新回) ── */
 var _snPrev=saveNotes;
 saveNotes=function(){
   var c=current;
-  if(c&&!c.isTrend&&!c.isQA){
+  if(c&&!c.isTrend){
     var k=keyOf(c);
     if(k&&docEl.dataset.rkey&&docEl.dataset.rkey!==k)return Promise.resolve();
   }
@@ -10511,7 +10571,7 @@ saveNotes=function(){
 var _apPrev=autoSavePaper;
 autoSavePaper=function(){
   var c=current;
-  if(c&&!c.isTrend&&!c.isQA){
+  if(c&&!c.isTrend){
     var k=keyOf(c);
     if(k&&docEl.dataset.rkey&&docEl.dataset.rkey!==k)return Promise.resolve();
   }
@@ -10520,14 +10580,52 @@ autoSavePaper=function(){
 var _fkPrev=flushNotesKeepalive;
 flushNotesKeepalive=function(){
   var c=current;
-  if(c&&!c.isTrend&&!c.isQA){
+  if(c&&!c.isTrend){
     var k=keyOf(c);
     if(k&&docEl.dataset.rkey&&docEl.dataset.rkey!==k)return;
   }
   return _fkPrev.apply(this,arguments);
 };
+
+/* ── ③ 蓋章：docEl 載入哪一回就記哪一回 ── */
+var _cvtPrev=convertDocToExamStyle;
+convertDocToExamStyle=function(root){
+  try{
+    if(root===docEl||root===undefined){
+      var h=docEl.querySelector('h1');
+      if(h){
+        var m=(h.textContent||'').match(/(^[^0-9\n]+?)\s*(\d{3})\s*[-－]\s*(\d)/);
+        if(m)docEl.dataset.rkey=m[1]+'/'+m[2]+'-'+m[3];
+      }
+      if(typeof current!=='undefined'&&current&&!current.isTrend&&!current.isExam&&!docEl.dataset.rkey){
+        docEl.dataset.rkey=keyOf(current);
+      }
+    }
+  }catch(e){}
+  return _cvtPrev.apply(this,arguments);
+};
+convertDocToExamStyle=window.__roundRaceV1&&convertDocToExamStyle;
+
+/* ── ④ 對照鈕防呆：開對照前確認畫面與 current 是同一回 ── */
+document.addEventListener('click',function(e){
+  var b=e.target&&e.target.closest?e.target.closest('#btnCompare'):null;
+  if(!b)return;
+  var c=current;
+  if(!c)return;
+  var k=keyOf(c);
+  if(k&&docEl.dataset.rkey&&docEl.dataset.rkey!==k){
+    /* 畫面跑掉：自動把該回重新開一次，再開對照 */
+    e.preventDefault();e.stopPropagation();
+    showToast('⚖️ 偵測到畫面與筆記不同步，正在重新載入…');
+    var rd=null;
+    (DB.subjects||[]).forEach(function(s){(s.rounds||[]).forEach(function(x){
+      if(s.name===c.subject&&x.label===c.label)rd=x;});});
+    if(rd){openRound(c.subject,rd).then(function(){setTimeout(function(){b.click();},400);});}
+  }
+},true);
 })();
 </script>
+
 
 
 
