@@ -5,140 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#14151b">
 <title>放射師國考神器</title>
-<script>
-(function(){
-'use strict';
-if(window.__docStable)return; window.__docStable=1;
-var IDS={doc:1};
-var last=new Map(),skipped=0,t0=0;
-var journal=[],pendingClear=null;
-
-function isT(el){return el&&el.nodeType===1&&el.id&&IDS[el.id]}
-function rec(kind,el,v,blocked){
-  try{
-    var sig=(typeof v==='string')?v.length+'字|'+v.replace(/\s+/g,' ').slice(0,50):'(節點)';
-    journal.push((performance.now()/1000).toFixed(2)+' #'+(el.id||'?')+' '+kind+(blocked?' [擋]':'')+' '+sig+'\n   '+new Error().stack.split('\n').slice(2,5).join('\n   '));
-    if(journal.length>50)journal.shift();
-  }catch(e){}
-}
-window.__docLog=function(){
-  journal.forEach(function(j){console.log(j)});
-  console.log('共 '+journal.length+' 筆');
-};
-
-/* 找出 #doc 實際捲動的祖先容器(快取) */
-var ctCache=new Map();
-function scrollCt(el){
-  if(ctCache.has(el))return ctCache.get(el);
-  var p=el,found=null;
-  while(p&&p!==document.body){
-    var cs=getComputedStyle(p);
-    if(/(auto|scroll|overlay)/.test(cs.overflowY)&&p.scrollHeight>p.clientHeight+4){found=p;break}
-    p=p.parentElement;
-  }
-  ctCache.set(el,found);
-  return found;
-}
-
-/* ══ 捲動守衛:偵測程式化的瞬間歸零,配合冗餘渲染還原閱讀位置 ══ */
-var ctEl=null,lastTop=0,lastMoveT=0,goodTop=0,jumpT=0,jumpFrom=0;
-function initCt(){
-  var d0=document.getElementById('doc');
-  if(d0)ctEl=scrollCt(d0);
-  else setTimeout(initCt,300);
-}
-initCt();
-document.addEventListener('scroll',function(e){
-  if(!ctEl)initCt();
-  if(!ctEl||e.target!==ctEl)return;
-  var top=ctEl.scrollTop,n=performance.now();
-  /* 上一次位置還很高、這次瞬間到 0、兩次事件間隔極短 → 程式歸零嫌疑 */
-  if(top<5&&lastTop>300&&n-lastMoveT<250){jumpT=n;jumpFrom=lastTop}
-  else if(top>=5){goodTop=top;jumpT=0}
-  lastTop=top;lastMoveT=n;
-},true);
-
-/* scrollTop=0 也記錄(會帶出是哪個函式在歸零) */
-try{
-  var sd=Object.getOwnPropertyDescriptor(Element.prototype,'scrollTop');
-  Object.defineProperty(Element.prototype,'scrollTop',{
-    set:function(v){
-      if(ctEl&&this===ctEl&&v===0)rec('scrollTop歸零',this,'',false);
-      sd.set.call(this,v);
-    },
-    get:sd.get,configurable:true
-  });
-}catch(e){}
-
-function saveScroll(el){
-  var s={win:window.scrollY,el:null,top:0},p=el;
-  while(p&&p!==document.body){
-    var cs=getComputedStyle(p);
-    if(/(auto|scroll|overlay)/.test(cs.overflowY)&&p.scrollHeight>p.clientHeight+4){s.el=p;s.top=p.scrollTop;break}
-    p=p.parentElement;
-  }
-  return s;
-}
-function restore(s){
-  if(s.el)s.el.scrollTop=s.top;
-  if(window.scrollY!==s.win)window.scrollTo(0,s.win);
-}
-function apply(el,fn,v){
-  var s=saveScroll(el);
-  fn.call(el,v);
-  last.set(el,v);
-  restore(s);
-}
-function write(el,fn,v){
-  if(pendingClear&&pendingClear.el===el){clearTimeout(pendingClear.t);pendingClear=null}
-  if(last.get(el)===v){
-    rec('重複',el,v,true);
-    skipped++;
-    var n=performance.now();
-    if(n-t0>3000){console.info('[docStable] 已擋掉 '+skipped+' 次重複重建');t0=n}
-    /* 冗餘渲染常伴隨捲動歸零:還原閱讀位置 */
-    var ct=scrollCt(el);
-    if(ct&&jumpT&&n-jumpT<400){ct.scrollTop=jumpFrom;lastTop=jumpFrom;jumpT=0}
-    return;
-  }
-  if(v===''){
-    rec('清空(緩)',el,v,false);
-    pendingClear={el:el,t:setTimeout(function(){
-      pendingClear=null;
-      if(last.get(el)===''){fn.call(el,'');last.set(el,'')}
-    },60)};
-    return;
-  }
-  rec('寫入',el,v,false);
-  apply(el,fn,v);
-}
-var d=Object.getOwnPropertyDescriptor(Element.prototype,'innerHTML');
-Object.defineProperty(Element.prototype,'innerHTML',{
-  set:function(v){if(isT(this)&&typeof v==='string')write(this,d.set,v);else d.set.call(this,v)},
-  get:d.get,configurable:true
-});
-function wrap(proto,name,dedup){
-  var o=proto[name];if(!o)return;
-  proto[name]=function(){
-    if(isT(this)){
-      var a=arguments;
-      if(a.length===1&&typeof a[0]==='string'){
-        if(dedup)return write(this,o,a[0]);
-        rec(name,this,a[0],false);
-        var s0=saveScroll(this),r0=o.apply(this,a);last.set(this,'§');restore(s0);return r0;
-      }
-      rec(name,this,'',false);
-      var s=saveScroll(this),r=o.apply(this,a);restore(s);return r;
-    }
-    return o.apply(this,arguments);
-  };
-}
-wrap(Element.prototype,'replaceChildren',true);
-wrap(Element.prototype,'append',false);
-console.log('[docStable] ready v3');
-})();
-</script>
-
 <link rel="manifest" href="manifest.json">
 <style>
 :root{--bg:#14151b;--panel:#1a1b22;--border:#2b2d38;--text:#e8e8ee;--muted:#9aa0b0;--accent:#4f8cff;--accent2:#6ea8ff;--green:#39d98a;color-scheme:dark}
@@ -10593,40 +10459,50 @@ api=function(path,body){
 </script>
 
 <script>
-/* ══════════ 開回競態防護 v1：舊回覆回來不許蓋掉現在的畫面 ══════════ */
+/* ══════════ 開回競態防護 v2(修正版)══════════ */
 (function(){
 'use strict';
-if(window.__roundRaceV1)return;
-window.__roundRaceV1=1;
-
-/* ── ① openRound 換成 token 版：過時的呼叫直接放棄 ── */
-var _token=0, _orPrev=window.openRound||openRound;
-window.openRound=async function(subject,rd,applySaved){
-  var my=++_token;
-  var r=await _orPrev.apply(this,arguments);
-  /* 舊呼叫回來時，若期間已經又開了別回，放棄（不蓋畫面） */
-  if(my!==_token)return null;
-  try{
-    var key=subject+'/'+rd.label;
-    if(docEl.dataset.rkey&&docEl.dataset.rkey!==key){
-      /* docEl 被舊呼叫蓋掉 → 用最新一次的資料重開一次 */
-      return openRound(subject,rd,applySaved!==false);
-    }
-  }catch(e){}
-  return r;
-};
-openRound=window.openRound;
-
-/* ── ② 存檔防護：畫面與 current 不同回時，絕不寫入 ── */
+if(window.__roundRaceV2)return;
+window.__roundRaceV2=1;
 function keyOf(c){
   if(!c)return '';
   if(c.isExam&&!c.origLabel)return 'exam/'+(c.examKey||'');
   return (c.origSubject||c.subject||'')+'/'+(c.origLabel||c.label||'');
 }
+/* ── ① 蓋章:一律以 current 為準,不再解析 h1(h1 前綴常和科目名不一致,舊版因此無限重開) ── */
+var _cvtPrev=convertDocToExamStyle;
+convertDocToExamStyle=function(root){
+  try{
+    if((root===docEl||root===undefined)&&typeof current!=='undefined'&&current
+       &&!current.isTrend&&!current.isExam&&!current.isQA){
+      docEl.dataset.rkey=keyOf(current);
+    }
+  }catch(e){}
+  return _cvtPrev.apply(this,arguments);
+};
+/* ── ② openRound:保留 token 防過時呼叫覆寫;移除遞迴重開 ── */
+var _token=0,_lastArgs=null;
+var _orPrev=openRound;
+openRound=async function(subject,rd,applySaved){
+  _lastArgs={subject:subject,rd:rd,applySaved:applySaved!==false};
+  var my=++_token;
+  var r=await _orPrev.apply(this,arguments);
+  if(my===_token)return r;                        /* 我就是最新一次,正常結束 */
+  /* 我是過時呼叫(使用者已經又開了別回):只有當 current 仍指著最新那回、
+     畫面又被我蓋掉時,才用最新參數重開一次(有快取,瞬間完成,不會循環) */
+  var la=_lastArgs;
+  if(la&&current&&!current.isTrend&&!current.isExam&&!current.isQA
+     &&current.subject===la.subject&&current.label===la.rd.label){
+    return openRound(la.subject,la.rd,la.applySaved);
+  }
+  return r;
+};
+window.openRound=openRound;
+/* ── ③ 存檔防護:畫面與 current 不同回時不寫入(防舊畫面存進新回) ── */
 var _snPrev=saveNotes;
 saveNotes=function(){
   var c=current;
-  if(c&&!c.isTrend){
+  if(c&&!c.isTrend&&!c.isQA){
     var k=keyOf(c);
     if(k&&docEl.dataset.rkey&&docEl.dataset.rkey!==k)return Promise.resolve();
   }
@@ -10635,7 +10511,7 @@ saveNotes=function(){
 var _apPrev=autoSavePaper;
 autoSavePaper=function(){
   var c=current;
-  if(c&&!c.isTrend){
+  if(c&&!c.isTrend&&!c.isQA){
     var k=keyOf(c);
     if(k&&docEl.dataset.rkey&&docEl.dataset.rkey!==k)return Promise.resolve();
   }
@@ -10644,52 +10520,14 @@ autoSavePaper=function(){
 var _fkPrev=flushNotesKeepalive;
 flushNotesKeepalive=function(){
   var c=current;
-  if(c&&!c.isTrend){
+  if(c&&!c.isTrend&&!c.isQA){
     var k=keyOf(c);
     if(k&&docEl.dataset.rkey&&docEl.dataset.rkey!==k)return;
   }
   return _fkPrev.apply(this,arguments);
 };
-
-/* ── ③ 蓋章：docEl 載入哪一回就記哪一回 ── */
-var _cvtPrev=convertDocToExamStyle;
-convertDocToExamStyle=function(root){
-  try{
-    if(root===docEl||root===undefined){
-      var h=docEl.querySelector('h1');
-      if(h){
-        var m=(h.textContent||'').match(/(^[^0-9\n]+?)\s*(\d{3})\s*[-－]\s*(\d)/);
-        if(m)docEl.dataset.rkey=m[1]+'/'+m[2]+'-'+m[3];
-      }
-      if(typeof current!=='undefined'&&current&&!current.isTrend&&!current.isExam&&!docEl.dataset.rkey){
-        docEl.dataset.rkey=keyOf(current);
-      }
-    }
-  }catch(e){}
-  return _cvtPrev.apply(this,arguments);
-};
-convertDocToExamStyle=window.__roundRaceV1&&convertDocToExamStyle;
-
-/* ── ④ 對照鈕防呆：開對照前確認畫面與 current 是同一回 ── */
-document.addEventListener('click',function(e){
-  var b=e.target&&e.target.closest?e.target.closest('#btnCompare'):null;
-  if(!b)return;
-  var c=current;
-  if(!c)return;
-  var k=keyOf(c);
-  if(k&&docEl.dataset.rkey&&docEl.dataset.rkey!==k){
-    /* 畫面跑掉：自動把該回重新開一次，再開對照 */
-    e.preventDefault();e.stopPropagation();
-    showToast('⚖️ 偵測到畫面與筆記不同步，正在重新載入…');
-    var rd=null;
-    (DB.subjects||[]).forEach(function(s){(s.rounds||[]).forEach(function(x){
-      if(s.name===c.subject&&x.label===c.label)rd=x;});});
-    if(rd){openRound(c.subject,rd).then(function(){setTimeout(function(){b.click();},400);});}
-  }
-},true);
 })();
 </script>
-
 
 
 
