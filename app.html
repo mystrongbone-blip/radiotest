@@ -9,10 +9,25 @@
 (function(){
 'use strict';
 if(window.__docStable)return; window.__docStable=1;
-var IDS={doc:1};                 /* 保護的容器;發現別的容器也這樣就加進來 */
+var IDS={doc:1};
 var last=new Map(),skipped=0,t0=0;
+var journal=[],pendingClear=null;
 
 function isT(el){return el&&el.nodeType===1&&el.id&&IDS[el.id]}
+
+/* 寫入日誌:出事後用 __docLog() 查最近 50 筆 */
+function rec(kind,el,v,blocked){
+  try{
+    var sig=(typeof v==='string')?v.length+'字|'+v.replace(/\s+/g,' ').slice(0,50):'(節點)';
+    journal.push((performance.now()/1000).toFixed(2)+' #'+(el.id||'?')+' '+kind+(blocked?' [擋]':'')+' '+sig+'\n   '+new Error().stack.split('\n').slice(2,5).join('\n   '));
+    if(journal.length>50)journal.shift();
+  }catch(e){}
+}
+window.__docLog=function(){
+  journal.forEach(function(j){console.log(j)});
+  console.log('共 '+journal.length+' 筆');
+};
+
 function saveScroll(el){
   var s={win:window.scrollY,el:null,top:0},p=el;
   while(p&&p!==document.body){
@@ -26,39 +41,59 @@ function restore(s){
   if(s.el)s.el.scrollTop=s.top;
   if(window.scrollY!==s.win)window.scrollTo(0,s.win);
 }
+function apply(el,fn,v){
+  var s=saveScroll(el);
+  fn.call(el,v);
+  last.set(el,v);
+  restore(s);
+}
 function write(el,fn,v){
-  if(last.get(el)===v){          /* 內容一模一樣 → 直接擋掉,不重建 */
+  if(pendingClear&&pendingClear.el===el){clearTimeout(pendingClear.t);pendingClear=null}
+  if(last.get(el)===v){
+    rec('重複',el,v,true);
     skipped++;
     var n=performance.now();
     if(n-t0>3000){console.info('[docStable] 已擋掉 '+skipped+' 次重複重建');t0=n}
     return;
   }
-  var s=saveScroll(el);
-  fn.call(el,v);
-  last.set(el,v);
-  restore(s);                    /* 真的要重寫,捲動位置也不會跑掉 */
+  if(v===''){                       /* 清空緩 60ms:擋「先清空再填內容」造成的白屏閃 */
+    rec('清空(緩)',el,v,false);
+    pendingClear={el:el,t:setTimeout(function(){
+      pendingClear=null;
+      if(last.get(el)===''){fn.call(el,'');last.set(el,'')}
+    },60)};
+    return;
+  }
+  rec('寫入',el,v,false);
+  apply(el,fn,v);
 }
 var d=Object.getOwnPropertyDescriptor(Element.prototype,'innerHTML');
 Object.defineProperty(Element.prototype,'innerHTML',{
   set:function(v){if(isT(this)&&typeof v==='string')write(this,d.set,v);else d.set.call(this,v)},
   get:d.get,configurable:true
 });
-function wrap(proto,name){
+function wrap(proto,name,dedup){
   var o=proto[name];if(!o)return;
   proto[name]=function(){
     if(isT(this)){
-      if(arguments.length===1&&typeof arguments[0]==='string')return write(this,o,arguments[0]);
-      var s=saveScroll(this),r=o.apply(this,arguments);restore(s);return r;
+      var a=arguments;
+      if(a.length===1&&typeof a[0]==='string'){
+        if(dedup)return write(this,o,a[0]);
+        rec(name,this,a[0],false);
+        var s0=saveScroll(this),r0=o.apply(this,a);last.set(this,'§');restore(s0);return r0;
+      }
+      rec(name,this,'',false);
+      var s=saveScroll(this),r=o.apply(this,a);restore(s);return r;
     }
     return o.apply(this,arguments);
   };
 }
-wrap(Element.prototype,'replaceChildren');
-wrap(Element.prototype,'append');
-wrap(Node.prototype,'appendChild');
-console.log('[docStable] ready');
+wrap(Element.prototype,'replaceChildren',true);
+wrap(Element.prototype,'append',false);
+console.log('[docStable] ready v2');
 })();
 </script>
+
 <link rel="manifest" href="manifest.json">
 <style>
 :root{--bg:#14151b;--panel:#1a1b22;--border:#2b2d38;--text:#e8e8ee;--muted:#9aa0b0;--accent:#4f8cff;--accent2:#6ea8ff;--green:#39d98a;color-scheme:dark}
