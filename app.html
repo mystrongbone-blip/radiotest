@@ -14,8 +14,6 @@ var last=new Map(),skipped=0,t0=0;
 var journal=[],pendingClear=null;
 
 function isT(el){return el&&el.nodeType===1&&el.id&&IDS[el.id]}
-
-/* 寫入日誌:出事後用 __docLog() 查最近 50 筆 */
 function rec(kind,el,v,blocked){
   try{
     var sig=(typeof v==='string')?v.length+'字|'+v.replace(/\s+/g,' ').slice(0,50):'(節點)';
@@ -27,6 +25,50 @@ window.__docLog=function(){
   journal.forEach(function(j){console.log(j)});
   console.log('共 '+journal.length+' 筆');
 };
+
+/* 找出 #doc 實際捲動的祖先容器(快取) */
+var ctCache=new Map();
+function scrollCt(el){
+  if(ctCache.has(el))return ctCache.get(el);
+  var p=el,found=null;
+  while(p&&p!==document.body){
+    var cs=getComputedStyle(p);
+    if(/(auto|scroll|overlay)/.test(cs.overflowY)&&p.scrollHeight>p.clientHeight+4){found=p;break}
+    p=p.parentElement;
+  }
+  ctCache.set(el,found);
+  return found;
+}
+
+/* ══ 捲動守衛:偵測程式化的瞬間歸零,配合冗餘渲染還原閱讀位置 ══ */
+var ctEl=null,lastTop=0,lastMoveT=0,goodTop=0,jumpT=0,jumpFrom=0;
+function initCt(){
+  var d0=document.getElementById('doc');
+  if(d0)ctEl=scrollCt(d0);
+  else setTimeout(initCt,300);
+}
+initCt();
+document.addEventListener('scroll',function(e){
+  if(!ctEl)initCt();
+  if(!ctEl||e.target!==ctEl)return;
+  var top=ctEl.scrollTop,n=performance.now();
+  /* 上一次位置還很高、這次瞬間到 0、兩次事件間隔極短 → 程式歸零嫌疑 */
+  if(top<5&&lastTop>300&&n-lastMoveT<250){jumpT=n;jumpFrom=lastTop}
+  else if(top>=5){goodTop=top;jumpT=0}
+  lastTop=top;lastMoveT=n;
+},true);
+
+/* scrollTop=0 也記錄(會帶出是哪個函式在歸零) */
+try{
+  var sd=Object.getOwnPropertyDescriptor(Element.prototype,'scrollTop');
+  Object.defineProperty(Element.prototype,'scrollTop',{
+    set:function(v){
+      if(ctEl&&this===ctEl&&v===0)rec('scrollTop歸零',this,'',false);
+      sd.set.call(this,v);
+    },
+    get:sd.get,configurable:true
+  });
+}catch(e){}
 
 function saveScroll(el){
   var s={win:window.scrollY,el:null,top:0},p=el;
@@ -54,9 +96,12 @@ function write(el,fn,v){
     skipped++;
     var n=performance.now();
     if(n-t0>3000){console.info('[docStable] 已擋掉 '+skipped+' 次重複重建');t0=n}
+    /* 冗餘渲染常伴隨捲動歸零:還原閱讀位置 */
+    var ct=scrollCt(el);
+    if(ct&&jumpT&&n-jumpT<400){ct.scrollTop=jumpFrom;lastTop=jumpFrom;jumpT=0}
     return;
   }
-  if(v===''){                       /* 清空緩 60ms:擋「先清空再填內容」造成的白屏閃 */
+  if(v===''){
     rec('清空(緩)',el,v,false);
     pendingClear={el:el,t:setTimeout(function(){
       pendingClear=null;
@@ -90,7 +135,7 @@ function wrap(proto,name,dedup){
 }
 wrap(Element.prototype,'replaceChildren',true);
 wrap(Element.prototype,'append',false);
-console.log('[docStable] ready v2');
+console.log('[docStable] ready v3');
 })();
 </script>
 
