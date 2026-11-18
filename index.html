@@ -10557,14 +10557,14 @@ document.addEventListener('click',function(e){
 </script>
 
 
-<!-- ══════════ 迴旋加速器 Loading 全域模組(貼到 </body> 前)══════════ -->
+<!-- ══════════ 迴旋加速器 Loading v2(整段取代舊版)══════════ -->
 <style>
   #cyOverlay{position:fixed;inset:0;z-index:9999;background:rgba(6,9,13,.74);
     -webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);
+    touch-action:none;overscroll-behavior:contain;
     display:none;align-items:center;justify-content:center;opacity:0;transition:opacity .3s ease}
   #cyOverlay.on{display:flex}
   #cyOverlay.show{opacity:1}
-  body.cylock{overflow:hidden}
   #cyCard{width:min(80vw,340px);border-radius:16px;padding:14px 12px 12px;background:rgba(15,19,25,.97);
     border:1px solid #2b3644;box-shadow:0 14px 44px rgba(0,0,0,.55);transition:transform .3s ease}
   #cyOverlay.hidecard #cyCard{transform:scale(.94)}
@@ -10628,46 +10628,23 @@ document.addEventListener('click',function(e){
 <script>
 (function(){
 'use strict';
-/* ═══════ 參數區 ═══════ */
-var SEL='button,.btn,[role="button"],a,[onclick]'; /* 什麼算「按鈕」 */
-var DELAY_MS=1000;      /* 按下後多久沒反應才顯示 */
-var SETTLE_MS=350;      /* 內容更新後靜止多久 → 視為完成 */
-var AUTO_IDLE_MS=6000;  /* 顯示期間完全無動靜多久 → 強制視為完成(防卡) */
-var MAX_MS=30000;       /* 絕對安全閥 */
+if(window.__cyLoad)return;                 /* 防重複貼入:兩份只活一份 */
+window.__cyLoad=1;
 
-/* 動畫節奏:一組 = 650+80+190+80 = 1000ms */
+/* ═══════ 參數 ═══════ */
+var SEL='button,.btn,[role="button"],a,[onclick]';
+var DELAY_MS=1000,SETTLE_MS=350,MIN_SHOWN_MS=800,AUTO_IDLE_MS=6000,MAX_MS=30000;
 var CX=130,CY=160,R0=4,REXIT=92,REV=3.75;
-var T_SPIRAL=650,T_EXIT=80,T_IMPACT=190,T_COOL=80;
+var T_SPIRAL=650,T_EXIT=80,T_IMPACT=190,T_COOL=80;   /* 一組 1 秒 */
 
-/* ═══════ DOM ═══════ */
-function $(id){return document.getElementById(id)}
-var overlay=$('cyOverlay');
-var trail=$('cyTrail'),exitTrail=$('cyExitTrail'),exitPath=$('cyExitPath');
-var pt=$('cyPt'),ptGlow=$('cyPtGlow'),ptCore=$('cyPtCore');
-var flashT=$('cyFlashT'),flashB=$('cyFlashB');
-var imp=$('cyImp'),ring1=$('cyRing1'),ring2=$('cyRing2');
-var spEls=[$('cySp1'),$('cySp2'),$('cySp3')];
-if(!overlay||!trail)return;               /* 沒貼 HTML 就不啟動 */
-
-/* 螺旋 path:3.75 圈,結束在正上方、切線朝右 */
-(function(){
-  var d='M '+CX+' '+CY;
-  for(var i=1;i<=300;i++){
-    var ph=i/300*REV*2*Math.PI, r=R0+(REXIT-R0)*i/300;
-    d+=' L '+(CX+r*Math.cos(ph)).toFixed(1)+' '+(CY+r*Math.sin(ph)).toFixed(1);
-  }
-  trail.setAttribute('d',d);
-})();
-var L=trail.getTotalLength(), LE=exitPath.getTotalLength();
-trail.style.strokeDasharray=L;  trail.style.strokeDashoffset=L;
-exitTrail.style.strokeDasharray=LE; exitTrail.style.strokeDashoffset=LE;
-var PHI_TOT=REV*2*Math.PI;
+function q(id){return document.getElementById(id)}
+var overlay,trail,exitTrail,exitPath,pt,ptGlow,ptCore,flashT,flashB,imp,ring1,ring2,spEls;
+var L=0,LE=0,S_TOT=0,PHI_TOT=REV*2*Math.PI;
 function arcS(phi){var g=(REXIT-R0)/PHI_TOT;return R0*phi+g*phi*phi/2}
-var S_TOT=arcS(PHI_TOT);
 
 /* ═══════ 動畫狀態機(定速循環)═══════ */
-var st='idle', hideReq=false, raf=0, tStart=0, lastTs=0, elapsed=0;
-var flT=0, flB=0, crossPrev=0, safety=null, spPos=[];
+var st='idle',hideReq=false,raf=0,tStart=0,lastTs=0,elapsed=0;
+var flT=0,flB=0,crossPrev=0,safety=null,spPos=[];
 
 function resetCycle(){
   trail.style.strokeDashoffset=L; exitTrail.style.strokeDashoffset=LE;
@@ -10751,9 +10728,10 @@ function loop(ts){
   }
   raf=requestAnimationFrame(loop);
 }
+
 function show(){
   if(safety)clearTimeout(safety);
-  overlay.classList.add('on'); document.body.classList.add('cylock');
+  overlay.classList.add('on');
   requestAnimationFrame(function(){overlay.classList.add('show')});
   if(st==='idle'){resetCycle();startSpiral()}
   safety=setTimeout(forceHide,MAX_MS);
@@ -10761,7 +10739,7 @@ function show(){
 function hide(){
   if(safety){clearTimeout(safety);safety=null}
   if(st==='idle'||st==='cool'){finishHide();return}
-  hideReq=true;                             /* 讓當前這組打完靶才收 */
+  hideReq=true;
 }
 function forceHide(){hideReq=true;finishHide()}
 function finishHide(){
@@ -10772,64 +10750,97 @@ function finishHide(){
   overlay.classList.remove('show'); overlay.classList.add('hidecard');
   setTimeout(function(){
     overlay.classList.remove('on','hidecard');
-    document.body.classList.remove('cylock');
     st='idle'; hideReq=false; phase='off'; auto=false;
   },330);
 }
 
-/* ═══════ 自動偵測:1 秒沒反應才顯示;內容更新完才收 ═══════ */
-var phase='off', auto=false, pendT=null, idleT=null, settleT=null;
+/* ═══════ 自動偵測 ═══════ */
+var phase='off',auto=false,pendT=null,idleT=null,settleT=null,shownAt=0,lastMut=0;
 
 function isOwn(n){
   var p=n;
   while(p&&p.nodeType===1){if(p.id==='cyOverlay')return true;p=p.parentNode}
   return false;
 }
-var mo=new MutationObserver(function(muts){
-  if(phase!=='pending'&&phase!=='shown')return;
-  for(var i=0;i<muts.length;i++){
-    var m=muts[i];
-    /* 忽略自己(body/html 的 class 切換、overlay 內部變化) */
-    if(m.type==='attributes'&&(m.target===document.body||m.target===document.documentElement))continue;
-    if(isOwn(m.target))continue;
-    onResponse(); break;
-  }
-});
-mo.observe(document.body,{childList:true,subtree:true,attributes:true,characterData:true});
-
-function onResponse(){
-  if(phase==='pending'){                    /* 1 秒內就有畫面更新 = 反應快,不顯示 */
-    clearTimeout(pendT); pendT=null; phase='off'; return;
-  }
-  if(phase==='shown'&&auto&&!hideReq){      /* 顯示中:更新完且靜止 → 標記完成 */
-    clearTimeout(settleT);
-    settleT=setTimeout(function(){if(phase==='shown'&&auto)hide()},SETTLE_MS);
-    clearTimeout(idleT);
-    idleT=setTimeout(function(){if(phase==='shown'&&auto)hide()},AUTO_IDLE_MS);
-  }
+function settleHide(){
+  if(phase!=='shown'||!auto)return;
+  var left=MIN_SHOWN_MS-(performance.now()-shownAt);
+  if(left>0){clearTimeout(settleT);settleT=setTimeout(settleHide,left);return}
+  hide();
 }
-window.addEventListener('scroll',function(){if(phase==='pending')onResponse()},{capture:true,passive:true});
+function bindAuto(){
+  var mo=new MutationObserver(function(muts){
+    lastMut=performance.now();
+    if(phase!=='pending'&&phase!=='shown')return;
+    for(var i=0;i<muts.length;i++){
+      var m=muts[i];
+      if(m.type==='attributes'&&(m.target===document.body||m.target===document.documentElement))continue;
+      if(isOwn(m.target))continue;
+      if(phase==='shown'&&auto){
+        clearTimeout(settleT);
+        settleT=setTimeout(settleHide,SETTLE_MS);
+        clearTimeout(idleT);
+        idleT=setTimeout(function(){if(phase==='shown'&&auto)hide()},AUTO_IDLE_MS);
+      }
+      break;
+    }
+  });
+  mo.observe(document.body,{childList:true,subtree:true,attributes:true,characterData:true});
 
-document.addEventListener('click',function(e){
-  if(phase!=='off')return;
-  var t=e.target; if(!t||!t.closest)return;
-  var el=t.closest(SEL); if(!el)return;
-  if(el.hasAttribute('data-noloading')||el.closest('[data-noloading]'))return;
-  phase='pending';
-  pendT=setTimeout(function(){
-    pendT=null;
-    if(phase!=='pending')return;
-    phase='shown'; auto=true; show();
-    idleT=setTimeout(function(){if(phase==='shown'&&auto)hide()},AUTO_IDLE_MS);
-  },DELAY_MS);
-},true);
+  document.addEventListener('click',function(e){
+    if(phase!=='off')return;
+    var t=e.target;if(!t||!t.closest)return;
+    var el=t.closest(SEL);if(!el)return;
+    if(el.hasAttribute('data-noloading')||el.closest('[data-noloading]'))return;
+    phase='pending';
+    pendT=setTimeout(function(){
+      pendT=null;
+      if(phase!=='pending')return;
+      /* 剛解凍、render 剛做完 → 不閃遮罩 */
+      if(performance.now()-lastMut<150){phase='off';return}
+      phase='shown';auto=true;shownAt=performance.now();show();
+      idleT=setTimeout(function(){if(phase==='shown'&&auto)hide()},AUTO_IDLE_MS);
+    },DELAY_MS);
+  },true);
 
-/* ═══════ 手動 API(已知耗時的操作可自行控制)═══════ */
-window.showLoading=function(){clearTimeout(pendT);pendT=null;phase='shown';auto=false;show()};
+  window.addEventListener('scroll',function(){
+    if(phase==='pending'){clearTimeout(pendT);pendT=null;phase='off'}
+  },{capture:true,passive:true});
+}
+
+/* ═══════ 手動 API(重活按鈕請用這個)═══════ */
+window.showLoading=function(){
+  if(!overlay)return;
+  clearTimeout(pendT);pendT=null;
+  if(phase==='shown')return;
+  phase='shown';auto=false;shownAt=performance.now();show();
+};
 window.hideLoading=function(){if(phase==='shown')hide()};
+
+/* ═══════ 啟動:DOM 未就緒自動重試,完成後 Console 會印 [cyLoad] ready ═══════ */
+function boot(n){
+  overlay=q('cyOverlay');trail=q('cyTrail');exitTrail=q('cyExitTrail');exitPath=q('cyExitPath');
+  pt=q('cyPt');ptGlow=q('cyPtGlow');ptCore=q('cyPtCore');
+  flashT=q('cyFlashT');flashB=q('cyFlashB');imp=q('cyImp');ring1=q('cyRing1');ring2=q('cyRing2');
+  spEls=[q('cySp1'),q('cySp2'),q('cySp3')];
+  if(!overlay||!trail){if(n<10)setTimeout(function(){boot(n+1)},200);return}
+  var d='M '+CX+' '+CY;
+  for(var i=1;i<=300;i++){
+    var ph=i/300*REV*2*Math.PI,r=R0+(REXIT-R0)*i/300;
+    d+=' L '+(CX+r*Math.cos(ph)).toFixed(1)+' '+(CY+r*Math.sin(ph)).toFixed(1);
+  }
+  trail.setAttribute('d',d);
+  L=trail.getTotalLength();LE=exitPath.getTotalLength();
+  trail.style.strokeDasharray=L;trail.style.strokeDashoffset=L;
+  exitTrail.style.strokeDasharray=LE;exitTrail.style.strokeDashoffset=LE;
+  S_TOT=arcS(PHI_TOT);
+  bindAuto();
+  console.log('[cyLoad] ready');
+}
+boot(0);
 })();
 </script>
-<!-- ══════════ 迴旋加速器 Loading 模組結束 ══════════ -->
+<!-- ══════════ 模組結束 ══════════ -->
 
 </body>
 </html>
