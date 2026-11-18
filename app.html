@@ -10645,7 +10645,44 @@ document.addEventListener('click',function(e){
 })();
 </script>
 
-
+<script>
+/* ══════════ 試題庫防覆寫 v1:閱讀頁不在畫面上時,禁止舊快照寫回筆記 ══════════ */
+(function(){
+'use strict';
+if(window.__libNoClobberV1)return;
+window.__libNoClobberV1=1;
+function inLib(){
+  try{ return typeof lib!=='undefined'&&lib&&lib.style.display!=='none'; }catch(e){ return false; }
+}
+function roundPageVisible(){
+  try{ return typeof view!=='undefined'&&view&&view.style.display!=='none'; }catch(e){ return false; }
+}
+function liveRound(){
+  try{ return !!(current&&!current.isTrend&&!current.isExam&&!current.isQA); }catch(e){ return false; }
+}
+/* 該擋的兩種情況:
+   ① 人在試題庫(閱讀頁隱藏但 current 還留著)→ 由試題庫佇列負責存
+   ② 閱讀頁不在畫面上(首頁/考試選單等)→ docEl 快照不可信 */
+function blockStaleSave(){
+  return (inLib()||!roundPageVisible())&&liveRound();
+}
+var snPrev=saveNotes;
+saveNotes=function(){
+  if(blockStaleSave())return Promise.resolve();
+  return snPrev.apply(this,arguments);
+};
+var apPrev=autoSavePaper;
+autoSavePaper=function(){
+  if(blockStaleSave())return Promise.resolve();
+  return apPrev.apply(this,arguments);
+};
+var fkPrev=flushNotesKeepalive;
+flushNotesKeepalive=function(){
+  if(blockStaleSave())return;
+  return fkPrev.apply(this,arguments);
+};
+})();
+</script>
 
 
 </body>
