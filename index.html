@@ -66,7 +66,7 @@
 <script>
 (function(){
 'use strict';
-var VER_URL='./version.txt', APP_URL='./app.html', CACHE='shenqi-v2';
+var VER_URL='./version.txt',APP_URL='./app.html',INDEX_URL='./index.js',CACHE='shenqi-v2';
 var CX=130,CY=160,R0=4,REXIT=92,REV=3.75;
 var T_EXIT=160,T_IMPACT=300,MIN_VIEW=600;
 
@@ -88,9 +88,9 @@ trail.style.strokeDasharray=L;trail.style.strokeDashoffset=L;
 exitTrail.style.strokeDasharray=LE;exitTrail.style.strokeDashoffset=LE;
 var PHI_TOT=REV*2*Math.PI;
 
-/* 動畫:p=0~1 軌跡從中心往外填滿;p=1 射出打靶後進入 */
 var pT=0,pS=0,st='run',t0=performance.now(),lastTs=0,tMark=0,flT=0,flB=0,cross=0,entered=false;
 function setP(p){pT=Math.max(0,Math.min(1,p))}
+function setTxt(s){pct.textContent=s;pct.classList.remove('fail')}
 function loop(ts){
   var dt=Math.min(50,ts-(lastTs||ts));lastTs=ts;
   if(st==='run'){
@@ -145,55 +145,101 @@ function fail(){
   pct.classList.add('fail');
   $('boot').addEventListener('click',function(){location.reload()});
 }
-
-/* 主流程 */
+function grab(url){
+  /* x-cy-preload:叫 sw.js 放行直連網路,不回傳快取舊檔 */
+  return fetch(url,{cache:'no-store',headers:{'x-cy-preload':'1'}});
+}
+function parseIndex(txt){
+  var out={subjects:[],subs:null};
+  try{
+    var fake={};
+    new Function('window',txt)(fake);
+    if(fake.MOBILE_INDEX&&fake.MOBILE_INDEX.subjects)
+      out.subjects=fake.MOBILE_INDEX.subjects.map(function(s){return s.name;}).filter(Boolean);
+    out.subs=fake.MOBILE_SUBS||null;
+  }catch(e){}
+  if(!out.subjects.length){
+    try{
+      var m=txt.match(/window\.MOBILE_INDEX\s*=\s*(\{[\s\S]*\})\s*;?\s*$/);
+      if(m){
+        var idx=JSON.parse(m[1]);
+        out.subjects=(idx.subjects||[]).map(function(s){return s.name;}).filter(Boolean);
+      }
+    }catch(e){}
+  }
+  return out;
+}
 async function main(){
   if('serviceWorker' in navigator&&location.protocol==='https:'){
     navigator.serviceWorker.register('./sw.js').catch(function(){});
   }
   var cache=null;
   try{if(window.caches)cache=await caches.open(CACHE)}catch(e){}
-  if(!cache){location.replace(APP_URL);return}   /* 不支援 Cache API:退回舊行為 */
-
+  if(!cache){location.replace(APP_URL);return}
   var remote=null;
-  try{remote=(await(await fetch(VER_URL,{cache:'no-store'})).text()).trim()}catch(e){}
-
+  try{remote=(await(await grab(VER_URL)).text()).trim()}catch(e){}
   var cachedApp=await cache.match(APP_URL);
   var storedVer='';
-  try{if(await cache.match('./ver'))storedVer=(await(await cache.match('./ver')).text()).trim()}catch(e){}
-
-  if(remote===null){                             /* 沒網路 */
+  try{var vr=await cache.match('./ver');if(vr)storedVer=(await vr.text()).trim()}catch(e){}
+  if(remote===null){
     if(cachedApp){pct.textContent='離線模式';setP(1)}else fail();
     return;
   }
-  if(cachedApp&&storedVer===remote){             /* 已是最新:直接進 */
-    setP(1);return;
-  }
-  /* 下載神器本體 */
-  pct.textContent='連線中…';
+  if(cachedApp&&storedVer===remote){setP(1);return}
+
   try{
-    var res=await fetch(APP_URL,{cache:'no-store',headers:{'x-cy-preload':'1'}});
+    setTxt('0%');
+    /* ① 神器本體(0~45%) */
+    var res=await grab(APP_URL);
     if(!res.ok)throw 0;
     var total=+res.headers.get('Content-Length')||0;
-    var gzipped=/gzip|br/i.test(res.headers.get('Content-Encoding')||'');
+    var gz=/gzip|br/i.test(res.headers.get('Content-Encoding')||'');
     var got=0,chunks=[];
-    pct.textContent='0%';
     if(res.body&&res.body.getReader){
-      var reader=res.body.getReader();
-      while(true){
-        var r=await reader.read();
+      var rd=res.body.getReader();
+      for(;;){
+        var r=await rd.read();
         if(r.done)break;
         chunks.push(r.value);got+=r.value.length;
-        if(total>0&&!gzipped)setP(got/total);                          /* 精確進度 */
-        else setP(Math.min(.96,1-Math.exp(-got/2500000)));             /* 壓縮傳輸:估算進度 */
-        pct.textContent=Math.round(pT*100)+'%';
+        if(total>0&&!gz)setP((got/total)*0.45);
+        else setP(Math.min(0.42,1-Math.exp(-got/1200000))*0.45);
+        setTxt(Math.round(pT*100)+'%');
       }
     }else{
       chunks=[new Uint8Array(await res.arrayBuffer())];
     }
-    setP(1);pct.textContent='100%';
-    var blob=new Blob(chunks,{type:'text/html'});
-    await cache.put(APP_URL,new Response(blob));
+    await cache.put(APP_URL,new Response(new Blob(chunks,{type:'text/html'})));
+
+    /* ② 筆記索引(50%) */
+    setP(0.5);setTxt('50%');
+    var subjects=[],subsMap=null;
+    try{
+      var ires=await grab(INDEX_URL);
+      if(ires.ok){
+        var itxt=await ires.text();
+        var pi=parseIndex(itxt);
+        subjects=pi.subjects;subsMap=pi.subs;
+        await cache.put(INDEX_URL,new Response(itxt,{headers:{'Content-Type':'application/javascript'}}));
+      }
+    }catch(e){}
+
+    /* ③ 全科題庫(50~100%),一科一格平均推進 */
+    if(subjects.length){
+      for(var i=0;i<subjects.length;i++){
+        var nm=subjects[i];
+        var file=(subsMap&&subsMap[nm])||('sub_'+encodeURIComponent(nm)+'.js');
+        try{
+          var sr=await grab(file);
+          if(sr.ok){
+            var stxt=await sr.text();
+            await cache.put(file,new Response(stxt,{headers:{'Content-Type':'application/javascript'}}));
+          }
+        }catch(e){}          /* 單科失敗不擋整體,進神器後該科會現場抓 */
+        setP(0.5+((i+1)/subjects.length)*0.5);
+        setTxt(Math.round(pT*100)+'%');
+      }
+    }else{setP(1)}
+    setP(1);setTxt('100%');
     await cache.put('./ver',new Response(remote));
   }catch(e){fail()}
 }

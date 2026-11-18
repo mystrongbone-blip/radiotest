@@ -1100,6 +1100,22 @@ async function loadRound(file){
   }catch(e){return null;}
 }
 
+
+/* ═══ 開機預載:把全部科目的題庫抓進記憶體(外殼已預載的話這裡秒過) ═══ */
+async function preloadAllSubjects(){
+  if(window.MOBILE_DATA)return;               /* 單檔模式:資料全在記憶體,不用抓 */
+  const subs=(DB&&DB.subjects)||[];
+  if(!subs.length)return;
+  clearInterval(bootTimer);                   /* 停掉假進度,改顯示真進度 */
+  let done=0;
+  for(const s of subs){
+    const rd=(s.rounds&&s.rounds[0])||null;
+    if(rd){try{await loadRound(rd.file);}catch(e){}}   /* 抓一題=整科檔案全部進快取 */
+    done++;
+    setBootPct(Math.round(done/subs.length*100),'預載題庫 '+done+'/'+subs.length+' 科');
+  }
+}
+
 const $=id=>document.getElementById(id);
 const home=$('home'),view=$('view'),lib=$('lib');
 const docEl=$('doc'),crumb=$('crumb'),libBody=$('libBody'),docWrap=$('docWrap');
@@ -6765,7 +6781,10 @@ trendBoot();
 if(window.MOBILE_DATA||window.MOBILE_INDEX){
   bootShow();
   bootSimulate();
-  loadIndex().then(function(){bootDone();}).catch(function(){bootDone();});
+  loadIndex().then(async function(){
+    try{await preloadAllSubjects();}catch(e){}
+    bootDone();
+  }).catch(function(){bootDone();});
 }else{
   if(!window.MOBILE_INDEX&&!window.MOBILE_DATA){document.body.insertAdjacentHTML('afterbegin','<div style=\"background:#e11d48;color:#fff;padding:10px;text-align:center;font-size:14px;font-weight:700\">⚠️ 資料檔未載入</div>');}
 loadIndex();
