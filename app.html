@@ -395,12 +395,10 @@ body.doc-custom #doc{background:#fff}
 }
 /* ══════════ 紙內「寬元素」跟隨紙寬：表格／圖／SVG ══════════ */
 
-/* ① 表格：太寬時在自身框內橫向捲動，不溢出到黑底 */
-#doc table,
-.libq-body table,
-.win-body table,
-#cmpRightR table,
-#compareView .cv-doc table{
+/* ① 表格：詳解表格＝一般表格（隨內容伸縮、文字重排、底色都在表格框內）；
+      只有考題趨勢／品保保留原本的橫向捲動模式 */
+.trend-scope table,
+.qa-scope table{
   display:block;
   width:100%;
   max-width:100%;
@@ -500,19 +498,23 @@ body.doc-custom #doc{background:#fff}
 
 
 <style>
-/* ═══ 閃白根治:每個全頁容器自帶不透明深色底,不再依賴 body 透色 ═══ */
+/* ═══ 閃白根治:全頁容器自帶深色底 ═══ */
 html{background:#14151b !important}
 body{background:#14151b !important}
 #home{background:#14151b !important}
 #view{background:#14151b !important}
 #lib{background:#14151b !important}
 #exam{background:#14151b !important}
-/* 字超出外框根治:長字斷行、寬表格自框內捲動 */
-#doc p,#doc li,#doc td,#doc th,.libq-body p,.libq-body td{overflow-wrap:anywhere;word-break:break-word}
-#doc table,.libq-body table{max-width:100%;overflow-x:auto}
-</style>
 
+/* ═══ 長字斷行(僅詳解/試題庫;彈窗 td 由 tableCss 管) ═══ */
+#doc p:not(.trend-scope p):not(.qa-scope p),
+#doc li:not(.trend-scope li):not(.qa-scope li),
+.libq-body p,.libq-body li{overflow-wrap:anywhere;word-break:break-word}
+/* ═══ 跳出框:內部容器允許橫捲,表格才不會撐破彈窗 ═══ */
+.win-body,.win-left,.win-right-body{overflow-x:auto}
+</style>
 </head>
+
 <body>
 <header>
   <span>📚</span><h1>放射師國考神器</h1>
@@ -1694,6 +1696,7 @@ async function openRound(subject,rd,applySavedNotes=true){
   }else notes={};
   injectSaveButtons();
   applyNotes();
+  if(window.__reinstateFileStyles)window.__reinstateFileStyles(r.html);
   convertDocToExamStyle(docEl);
   enhanceSimilarLinks();
   buildQnav();
@@ -4291,6 +4294,7 @@ async function openExamRecord(subject,label,attempt){
   current={subject:subject,label:label+'｜'+attempt,file:orig.file||rec.file||'',isExam:true,examKey:key,origSubject:subject,origLabel:label,origFile:orig.file||rec.file||''};
   notes={};
   docEl.innerHTML=buildExamRecordHTML(orig.text,rec);
+  if(window.__reinstateFileStyles&&orig.file){try{api('/api/round',{file:orig.file}).then(function(x){if(x&&x.ok)window.__reinstateFileStyles(x.html);});}catch(e){}}
   convertDocToExamStyle(docEl);
   injectSaveButtons();
   enhanceSimilarLinks();
@@ -10736,43 +10740,118 @@ flushNotesNow=function(){
 
 
 <script>
-/* ═══ 回次內容淨化 v2:剝全域汙染樣式,保留局部表格樣式;並補標準表格白底 ═══ */
+/* ═══ 回次內容淨化 v3：檔案自帶 <style> 改為「加分域保留」（zoom、position:fixed/sticky 依舊拔掉），
+   詳解表格回歸一般表格：隨內容伸縮、文字重排、底色絕對在表格框內；
+   顏色（黃表頭／灰表頭／白底）全部交回原本樣式，神器不再強制；
+   考題趨勢（.trend-scope）、品保（.qa-scope）、scBox 小表完全不碰 ═══ */
 (function(){
 'use strict';
 if(window.__roundCleanV1)return;
 window.__roundCleanV1=1;
-/* 會汙染全域的選擇器特徵:html/body/#home/#view/#doc/#docWrap/#lib/#exam/zoom */
-var BAD=/^\s*(html|body|#home|#view|#doc|#docWrap|#lib|#exam|\*)\b|zoom\s*:|position\s*:\s*fixed/i;
-function styleIsSafe(css){
-  /* 一條 <style> 裡只要有一條全域規則,整塊丟棄;純 table/td/th 等局部樣式保留 */
-  var blocks=String(css||'').split('}');
-  for(var i=0;i<blocks.length;i++){
-    var rule=blocks[i];
-    var b=rule.indexOf('{');
-    if(b<0)continue;
-    var sel=rule.slice(0,b).trim();
-    if(!sel)continue;
-    if(/^@(media|supports)/i.test(sel))continue;   /* 媒體查詢保守放行 */
-    if(BAD.test(sel))return false;
+var SCOPE='#doc,.libq-body,.win-body,.win-left,.win-right-body,.cv-doc';
+var DEAD=/zoom\s*:|position\s*:\s*(fixed|sticky)/i;
+function cleanDecls(decls){
+  return decls.split(';').filter(function(d){
+    var t=d.trim();
+    return t!==''&&!DEAD.test(t);
+  }).join(';');
+}
+function underScope(x){
+  return SCOPE.split(',').map(function(s){return s+' '+x;}).join(',');
+}
+function remapSel(sel){
+  var parts=[];
+  sel.split(',').forEach(function(x){
+    x=x.trim();
+    if(!x)return;
+    if(/^(html|body|:root)$/i.test(x)){parts.push(SCOPE);return;}
+    var mb=x.match(/^(html|body)(?=[\s.:#\[>+~])/i);
+    if(mb){
+      var rest=x.slice(mb[1].length);
+      parts.push(SCOPE.split(',').map(function(s){return s+rest;}).join(','));
+      return;
+    }
+    parts.push(underScope(x));
+  });
+  return parts.filter(Boolean).join(',');
+}
+function scopeSheet(css){
+  var out='',i=0;
+  css=String(css||'')
+      .replace(/\/\*[\s\S]*?\*\//g,'')
+      .replace(/@import[^;]+;/gi,'');
+  while(i<css.length){
+    var b=css.indexOf('{',i);
+    if(b===-1){out+=css.slice(i);break;}
+    var sel=css.slice(i,b).trim();
+    var depth=1,j=b+1;
+    while(j<css.length&&depth>0){
+      if(css.charAt(j)==='{')depth++;
+      else if(css.charAt(j)==='}')depth--;
+      j++;
+    }
+    var body=css.slice(b+1,j-1);
+    if(/^@(media|supports|layer|container)/i.test(sel)){
+      out+=sel+'{'+scopeSheet(body)+'}';
+    }else if(/^@/i.test(sel)){
+      out+=sel+'{'+body+'}';
+    }else if(sel){
+      var decs=cleanDecls(body);
+      if(decs.replace(/\s+/g,''))out+=remapSel(sel)+'{'+decs+'}';
+    }else{
+      out+=css.slice(i,j);
+    }
+    i=j;
   }
-  return true;
+  return out;
 }
 function clean(html){
   var s=String(html||'');
-  s=s.replace(/<style[^>]*>([\s\S]*?)<\/style>/gi,function(m,css){
-    return styleIsSafe(css)?m:'';
+  s=s.replace(/<style([^>]*)>([\s\S]*?)<\/style>/gi,function(m,attrs,css){
+    if(/data-scp/i.test(attrs))return m;
+    return '<style data-scp="1"'+attrs+'>'+scopeSheet(css)+'</style>';
   });
   s=s.replace(/<script[\s\S]*?<\/script>/gi,'')
      .replace(/<meta[^>]*>/gi,'')
      .replace(/<link[^>]*>/gi,'')
      .replace(/<\/?(?:html|head|body)\b[^>]*>/gi,'')
      .replace(/<!DOCTYPE[^>]*>/gi,'');
-  /* 內嵌 style 屬性中的 zoom 一律拿掉(111-2 的縮小兇手) */
   s=s.replace(/style="([^"]*)"/gi,function(m,v){
-    return /zoom\s*:/i.test(v)?'style="'+v.replace(/[^;]*zoom\s*:[^;]*;?/gi,'').replace(/^;|;$/g,'')+'"':m;
+    if(!DEAD.test(v))return m;
+    return 'style="'+v.split(';').filter(function(d){
+      var t=d.trim();return t!==''&&!DEAD.test(t);
+    }).join(';')+'"';
   });
   return s;
 }
+/* v2 時代被剝掉樣式的舊筆記：開回時從原始詳解檔把 <style> 補回（自動加分域、去重複） */
+function reinstateFileStyles(origHtml){
+  try{
+    if(!String(origHtml||'').match(/<style/i))return;
+    if(!docEl||!docEl.isConnected)return;
+    var probe=document.createElement('div');
+    probe.innerHTML=String(origHtml);
+    var styles=probe.querySelectorAll('style');
+    if(!styles.length)return;
+    var have=[];
+    docEl.querySelectorAll('style').forEach(function(s){
+      have.push((s.textContent||'').replace(/\s+/g,''));
+    });
+    styles.forEach(function(s){
+      var css=s.textContent||'';
+      if(!css.replace(/\s+/g,''))return;
+      var scoped=scopeSheet(css);
+      var kRaw=css.replace(/\s+/g,''),kScp=scoped.replace(/\s+/g,'');
+      if(have.indexOf(kRaw)>=0||have.indexOf(kScp)>=0)return;
+      var st=document.createElement('style');
+      st.setAttribute('data-scp','1');
+      st.textContent=scoped;
+      docEl.insertBefore(st,docEl.firstChild);
+      have.push(kScp);
+    });
+  }catch(e){}
+}
+window.__reinstateFileStyles=reinstateFileStyles;
 var d=Object.getOwnPropertyDescriptor(Element.prototype,'innerHTML');
 Object.defineProperty(Element.prototype,'innerHTML',{
   set:function(v){
@@ -10781,27 +10860,32 @@ Object.defineProperty(Element.prototype,'innerHTML',{
   },
   get:d.get,configurable:true
 });
+/* 跳出框／對照視窗不吃詳解檔自帶 <style>：一律用神器統一樣式（和其他彈窗相同），
+   避免某些年份檔自己的 CSS（固定寬度、底色）在窄彈窗裡爆版、不隨視窗伸縮 */
+function stripFileCss(html){return String(html||'').replace(/<style[\s\S]*?<\/style>/gi,'');}
 var mwPrev=makeWin;
 makeWin=function(title,leftHtml,rightHtml,src){
-  return mwPrev.call(this,title,clean(leftHtml),clean(rightHtml),src);
+  return mwPrev.call(this,title,clean(stripFileCss(leftHtml)),clean(stripFileCss(rightHtml)),src);
 };
 var scpPrev=showComparePair;
 showComparePair=function(title,leftHtml,rightHtml,src){
-  return scpPrev.call(this,title,clean(leftHtml),clean(rightHtml),src);
+  return scpPrev.call(this,title,clean(stripFileCss(leftHtml)),clean(stripFileCss(rightHtml)),src);
 };
-/* ═══ 標準表格樣式:剝掉原檔樣式後,表格白底黃表頭由神器統一供應 ═══ */
+/* ═══ 標準表格樣式：只強制「尺寸與底色位置」，顏色全部交回原本樣式 ═══
+   ① 一般表格（非滿版方塊）：寬度隨內容，最寬不超過紙寬 → 字少時右緣貼齊最後一個字
+   ② 文字自動重排；table/thead/tbody/tr 層級底色一律透明 → 底色絕對在表格框內
+   ③ 格子底色由原本樣式決定；沒有原本樣式才用神器預設（黃表頭白底） */
 function tableCss(){
-  return '#doc table,.libq-body table,.win-body table,.win-left table,'+
-         '.win-right-body table,#cmpRightR table,#cmpLeftL table,.cv-doc table{'+
-         'border-collapse:collapse;width:fit-content;background:#fff}'+
-  '#doc table td,#doc table th,.libq-body table td,.libq-body table th,'+
-  '.win-body table td,.win-body table th,.win-left table td,.win-left table th,'+
-  '.win-right-body table td,.win-right-body table th,#cmpRightR table td,#cmpRightR table th,'+
-  '#cmpLeftL table td,#cmpLeftL table th,.cv-doc table td,.cv-doc table th{'+
-  'background:#fff !important;border:1px solid #bbb;padding:8px;vertical-align:top}'+
-  '#doc table th,.libq-body table th,.win-body table th,.win-left table th,'+
-  '.win-right-body table th,#cmpRightR table th,#cmpLeftL table th,.cv-doc table th{'+
-  'background:#FFF3CD !important;text-align:center}';
+  var T='#doc table:not(.trend-scope table):not(.qa-scope table):not(.scApp table),'+
+        '.libq-body table:not(.scApp table),'+
+        '.win table:not(.scApp table),'+
+        '.cv-doc table:not(.scApp table)';
+  var G=T+' thead,'+T+' tbody,'+T+' tr';
+  var C=T+' td,'+T+' th';
+  return T+'{display:table!important;width:auto!important;max-width:100%!important;'+
+         'border-collapse:collapse!important;background:transparent!important}'+
+         G+'{background:transparent!important}'+
+         C+'{overflow-wrap:anywhere!important;word-break:break-word!important;white-space:normal!important}';
 }
 function injectCss(){
   var st=document.getElementById('stdTableCss');
@@ -10810,12 +10894,15 @@ function injectCss(){
     st.id='stdTableCss';
     document.head.appendChild(st);
   }
-  st.textContent=tableCss();
+  st.textContent=tableCss()+'\n'+
+    '.win-body,.win-left,.win-right-body{width:auto!important;min-width:0!important;max-width:100%!important}';
 }
 injectCss();
-console.log('[roundClean] v2 ready');
+console.log('[roundClean] v3 ready');
 })();
 </script>
+
+
 
 </body>
 </html>
