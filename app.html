@@ -507,10 +507,10 @@ body{background:#14151b !important}
 #view{background:#14151b !important}
 #lib{background:#14151b !important}
 #exam{background:#14151b !important}
-/* 閱讀白紙區維持白底(設計如此),但它的黑邊由 #view 深色承擔 */
+/* 字超出外框根治:長字斷行、寬表格自框內捲動 */
+#doc p,#doc li,#doc td,#doc th,.libq-body p,.libq-body td{overflow-wrap:anywhere;word-break:break-word}
+#doc table,.libq-body table{max-width:100%;overflow-x:auto}
 </style>
-
-
 
 </head>
 <body>
@@ -10719,21 +10719,43 @@ flushNotesKeepalive=function(){
 
 
 <script>
-/* ═══ 回次內容淨化 v1:詳解檔自帶的 <style> 不得汙染全域(醫物輻安 111-1~113-1 等) ═══ */
+/* ═══ 回次內容淨化 v2:剝全域汙染樣式,保留局部表格樣式;並補標準表格白底 ═══ */
 (function(){
 'use strict';
 if(window.__roundCleanV1)return;
 window.__roundCleanV1=1;
-function clean(html){
-  return String(html||'')
-    .replace(/<style[\s\S]*?<\/style>/gi,'')
-    .replace(/<script[\s\S]*?<\/script>/gi,'')
-    .replace(/<meta[^>]*>/gi,'')
-    .replace(/<link[^>]*>/gi,'')
-    .replace(/<\/?(?:html|head|body)\b[^>]*>/gi,'')
-    .replace(/<!DOCTYPE[^>]*>/gi,'');
+/* 會汙染全域的選擇器特徵:html/body/#home/#view/#doc/#docWrap/#lib/#exam/zoom */
+var BAD=/^\s*(html|body|#home|#view|#doc|#docWrap|#lib|#exam|\*)\b|zoom\s*:|position\s*:\s*fixed/i;
+function styleIsSafe(css){
+  /* 一條 <style> 裡只要有一條全域規則,整塊丟棄;純 table/td/th 等局部樣式保留 */
+  var blocks=String(css||'').split('}');
+  for(var i=0;i<blocks.length;i++){
+    var rule=blocks[i];
+    var b=rule.indexOf('{');
+    if(b<0)continue;
+    var sel=rule.slice(0,b).trim();
+    if(!sel)continue;
+    if(/^@(media|supports)/i.test(sel))continue;   /* 媒體查詢保守放行 */
+    if(BAD.test(sel))return false;
+  }
+  return true;
 }
-/* #doc 的所有寫入(openRound/applyNotes/筆記還原)統一淨化 */
+function clean(html){
+  var s=String(html||'');
+  s=s.replace(/<style[^>]*>([\s\S]*?)<\/style>/gi,function(m,css){
+    return styleIsSafe(css)?m:'';
+  });
+  s=s.replace(/<script[\s\S]*?<\/script>/gi,'')
+     .replace(/<meta[^>]*>/gi,'')
+     .replace(/<link[^>]*>/gi,'')
+     .replace(/<\/?(?:html|head|body)\b[^>]*>/gi,'')
+     .replace(/<!DOCTYPE[^>]*>/gi,'');
+  /* 內嵌 style 屬性中的 zoom 一律拿掉(111-2 的縮小兇手) */
+  s=s.replace(/style="([^"]*)"/gi,function(m,v){
+    return /zoom\s*:/i.test(v)?'style="'+v.replace(/[^;]*zoom\s*:[^;]*;?/gi,'').replace(/^;|;$/g,'')+'"':m;
+  });
+  return s;
+}
 var d=Object.getOwnPropertyDescriptor(Element.prototype,'innerHTML');
 Object.defineProperty(Element.prototype,'innerHTML',{
   set:function(v){
@@ -10742,7 +10764,6 @@ Object.defineProperty(Element.prototype,'innerHTML',{
   },
   get:d.get,configurable:true
 });
-/* 相似題彈窗與對照視窗:內容來源同樣是原始詳解檔,一併淨化 */
 var mwPrev=makeWin;
 makeWin=function(title,leftHtml,rightHtml,src){
   return mwPrev.call(this,title,clean(leftHtml),clean(rightHtml),src);
@@ -10751,7 +10772,31 @@ var scpPrev=showComparePair;
 showComparePair=function(title,leftHtml,rightHtml,src){
   return scpPrev.call(this,title,clean(leftHtml),clean(rightHtml),src);
 };
-console.log('[roundClean] ready');
+/* ═══ 標準表格樣式:剝掉原檔樣式後,表格白底黃表頭由神器統一供應 ═══ */
+function tableCss(){
+  return '#doc table,.libq-body table,.win-body table,.win-left table,'+
+         '.win-right-body table,#cmpRightR table,#cmpLeftL table,.cv-doc table{'+
+         'border-collapse:collapse;width:100%;background:#fff}'+
+  '#doc table td,#doc table th,.libq-body table td,.libq-body table th,'+
+  '.win-body table td,.win-body table th,.win-left table td,.win-left table th,'+
+  '.win-right-body table td,.win-right-body table th,#cmpRightR table td,#cmpRightR table th,'+
+  '#cmpLeftL table td,#cmpLeftL table th,.cv-doc table td,.cv-doc table th{'+
+  'background:#fff !important;border:1px solid #bbb;padding:8px;vertical-align:top}'+
+  '#doc table th,.libq-body table th,.win-body table th,.win-left table th,'+
+  '.win-right-body table th,#cmpRightR table th,#cmpLeftL table th,.cv-doc table th{'+
+  'background:#FFF3CD !important;text-align:center}';
+}
+function injectCss(){
+  var st=document.getElementById('stdTableCss');
+  if(!st){
+    st=document.createElement('style');
+    st.id='stdTableCss';
+    document.head.appendChild(st);
+  }
+  st.textContent=tableCss();
+}
+injectCss();
+console.log('[roundClean] v2 ready');
 })();
 </script>
 
