@@ -496,6 +496,22 @@ body.doc-custom #doc{background:#fff}
   #toast{font-size:14px !important}
 }
 </style>
+
+
+
+<style>
+/* ═══ 閃白根治:每個全頁容器自帶不透明深色底,不再依賴 body 透色 ═══ */
+html{background:#14151b !important}
+body{background:#14151b !important}
+#home{background:#14151b !important}
+#view{background:#14151b !important}
+#lib{background:#14151b !important}
+#exam{background:#14151b !important}
+/* 閱讀白紙區維持白底(設計如此),但它的黑邊由 #view 深色承擔 */
+</style>
+
+
+
 </head>
 <body>
 <header>
@@ -10700,6 +10716,44 @@ flushNotesKeepalive=function(){
 })();
 </script>
 
+
+
+<script>
+/* ═══ 回次內容淨化 v1:詳解檔自帶的 <style> 不得汙染全域(醫物輻安 111-1~113-1 等) ═══ */
+(function(){
+'use strict';
+if(window.__roundCleanV1)return;
+window.__roundCleanV1=1;
+function clean(html){
+  return String(html||'')
+    .replace(/<style[\s\S]*?<\/style>/gi,'')
+    .replace(/<script[\s\S]*?<\/script>/gi,'')
+    .replace(/<meta[^>]*>/gi,'')
+    .replace(/<link[^>]*>/gi,'')
+    .replace(/<\/?(?:html|head|body)\b[^>]*>/gi,'')
+    .replace(/<!DOCTYPE[^>]*>/gi,'');
+}
+/* #doc 的所有寫入(openRound/applyNotes/筆記還原)統一淨化 */
+var d=Object.getOwnPropertyDescriptor(Element.prototype,'innerHTML');
+Object.defineProperty(Element.prototype,'innerHTML',{
+  set:function(v){
+    if(this&&this.id==='doc'&&typeof v==='string')v=clean(v);
+    d.set.call(this,v);
+  },
+  get:d.get,configurable:true
+});
+/* 相似題彈窗與對照視窗:內容來源同樣是原始詳解檔,一併淨化 */
+var mwPrev=makeWin;
+makeWin=function(title,leftHtml,rightHtml,src){
+  return mwPrev.call(this,title,clean(leftHtml),clean(rightHtml),src);
+};
+var scpPrev=showComparePair;
+showComparePair=function(title,leftHtml,rightHtml,src){
+  return scpPrev.call(this,title,clean(leftHtml),clean(rightHtml),src);
+};
+console.log('[roundClean] ready');
+})();
+</script>
 
 </body>
 </html>
