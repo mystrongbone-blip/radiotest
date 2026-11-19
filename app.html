@@ -5,7 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#14151b">
 <title>放射師國考神器</title>
-<script>
+<link rel="manifest" href="manifest.json">
+<script src="index.js"></script><script>
 /* ══════════ 開回競態防護 v2.1(取代 v2)══════════ */
 (function(){
 'use strict';
@@ -466,6 +467,20 @@ body.doc-custom #doc{background:#fff}
 /* 單題彈窗時，最上面的 h2 不需要 45px 上緣留白 */
 :is(.win-body,.win-left,.win-right-body,.libq-body,#cmpRightR) > h2:first-child{ margin-top:0; }
 
+
+/* ═══════ 手機版專屬（打包時自動加入） ═══════ */
+@media (max-width:767px){
+  #docSide{display:none !important}
+  #viewTop,#libTools{padding:6px 8px;gap:6px}
+  #viewTop button,#viewTop .tool,#libTools button,#libTools .tool{font-size:13px !important;padding:6px 10px !important;border-radius:8px !important}
+  .hl-btn{width:24px !important;height:22px !important}
+  #doc{font-size:18px;line-height:1.9 !important}
+  #doc h2{font-size:18px !important}
+  .saveQ{font-size:12px !important;padding:4px 8px !important}
+  #qnavPanel{width:200px !important}
+  #qnavGrid{grid-template-columns:repeat(6,1fr) !important}
+  #toast{font-size:14px !important}
+}
 
 /* ═══════ 手機版專屬（打包時自動加入） ═══════ */
 @media (max-width:767px){
@@ -6787,6 +6802,7 @@ if(window.MOBILE_DATA||window.MOBILE_INDEX){
   }).catch(function(){bootDone();});
 }else{
   if(!window.MOBILE_INDEX&&!window.MOBILE_DATA){document.body.insertAdjacentHTML('afterbegin','<div style=\"background:#e11d48;color:#fff;padding:10px;text-align:center;font-size:14px;font-weight:700\">⚠️ 資料檔未載入</div>');}
+if(!window.MOBILE_INDEX&&!window.MOBILE_DATA){document.body.insertAdjacentHTML('afterbegin','<div style=\"background:#e11d48;color:#fff;padding:10px;text-align:center;font-size:14px;font-weight:700\">⚠️ 資料檔未載入</div>');}
 loadIndex();
 }
 

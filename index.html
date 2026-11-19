@@ -43,8 +43,7 @@
       <path d="M 130 69 A 91 91 0 0 1 199.7 101.5" fill="none" stroke="#7d8794" stroke-width="2" opacity=".85"/>
       <path d="M 147.7 59.5 A 102 102 0 0 1 188.5 76.4" fill="none" stroke="#4f9cf7" stroke-width="2" opacity=".8"/>
       <path id="cyTrail" fill="none" stroke="#ffb454" stroke-width="2.2" stroke-linecap="round" opacity=".4"/>
-      <path id="cyExitTrail" d="M 130 68 C 185 70, 230 91, 296 120"
-            fill="none" stroke="#ffb454" stroke-width="2.2" stroke-linecap="round" opacity=".4"/>
+      <path id="cyExitTrail" d="M 130 68 C 185 70, 230 91, 296 120" fill="none" stroke="#ffb454" stroke-width="2.2" stroke-linecap="round" opacity=".4"/>
       <path id="cyExitPath" d="M 130 68 C 185 70, 230 91, 296 120" fill="none" stroke="none"/>
       <circle cx="296" cy="120" r="15" fill="#141b24" stroke="#c7cfd8" stroke-width="1.6"/>
       <circle cx="296" cy="120" r="9" fill="none" stroke="#7d8794" stroke-width="1.2"/>
@@ -59,22 +58,19 @@
       </g>
       <circle cx="130" cy="160" r="2" fill="#3a4a5c"/>
     </svg>
-    <div id="cyPct">準備中…</div>
+    <div id="cyPct">資料生成中…</div>
   </div>
 </div>
-
 <script>
 (function(){
 'use strict';
 var VER_URL='./version.txt',APP_URL='./app.html',INDEX_URL='./index.js',CACHE='shenqi-v2';
 var CX=130,CY=160,R0=4,REXIT=92,REV=3.75;
 var T_EXIT=160,T_IMPACT=300,MIN_VIEW=600;
-
 function $(id){return document.getElementById(id)}
 var pct=$('cyPct'),trail=$('cyTrail'),exitTrail=$('cyExitTrail'),exitPath=$('cyExitPath');
 var pt=$('cyPt'),ptGlow=$('cyPtGlow'),ptCore=$('cyPtCore');
 var flashT=$('cyFlashT'),flashB=$('cyFlashB'),imp=$('cyImp'),ring=$('cyRing');
-
 (function(){
   var d='M '+CX+' '+CY;
   for(var i=1;i<=300;i++){
@@ -87,7 +83,6 @@ var L=trail.getTotalLength(),LE=exitPath.getTotalLength();
 trail.style.strokeDasharray=L;trail.style.strokeDashoffset=L;
 exitTrail.style.strokeDasharray=LE;exitTrail.style.strokeDashoffset=LE;
 var PHI_TOT=REV*2*Math.PI;
-
 var pT=0,pS=0,st='run',t0=performance.now(),lastTs=0,tMark=0,flT=0,flB=0,cross=0,entered=false;
 function setP(p){pT=Math.max(0,Math.min(1,p))}
 function setTxt(s){pct.textContent=s;pct.classList.remove('fail')}
@@ -135,7 +130,6 @@ function draw(p,ts,dt){
   flashB.setAttribute('opacity',(flB*.9).toFixed(2));
 }
 requestAnimationFrame(loop);
-
 function go(){
   var wait=Math.max(0,MIN_VIEW-(performance.now()-t0));
   setTimeout(function(){location.replace(APP_URL)},wait);
@@ -146,7 +140,6 @@ function fail(){
   $('boot').addEventListener('click',function(){location.reload()});
 }
 function grab(url){
-  /* x-cy-preload:叫 sw.js 放行直連網路,不回傳快取舊檔 */
   return fetch(url,{cache:'no-store',headers:{'x-cy-preload':'1'}});
 }
 function parseIndex(txt){
@@ -158,15 +151,6 @@ function parseIndex(txt){
       out.subjects=fake.MOBILE_INDEX.subjects.map(function(s){return s.name;}).filter(Boolean);
     out.subs=fake.MOBILE_SUBS||null;
   }catch(e){}
-  if(!out.subjects.length){
-    try{
-      var m=txt.match(/window\.MOBILE_INDEX\s*=\s*(\{[\s\S]*\})\s*;?\s*$/);
-      if(m){
-        var idx=JSON.parse(m[1]);
-        out.subjects=(idx.subjects||[]).map(function(s){return s.name;}).filter(Boolean);
-      }
-    }catch(e){}
-  }
   return out;
 }
 async function main(){
@@ -186,7 +170,6 @@ async function main(){
     return;
   }
   if(cachedApp&&storedVer===remote){setP(1);return}
-
   try{
     setTxt('0%');
     /* ① 神器本體(0~45%) */
@@ -209,7 +192,6 @@ async function main(){
       chunks=[new Uint8Array(await res.arrayBuffer())];
     }
     await cache.put(APP_URL,new Response(new Blob(chunks,{type:'text/html'})));
-
     /* ② 筆記索引(50%) */
     setP(0.5);setTxt('50%');
     var subjects=[],subsMap=null;
@@ -222,7 +204,6 @@ async function main(){
         await cache.put(INDEX_URL,new Response(itxt,{headers:{'Content-Type':'application/javascript'}}));
       }
     }catch(e){}
-
     /* ③ 全科題庫(50~100%),一科一格平均推進 */
     if(subjects.length){
       for(var i=0;i<subjects.length;i++){
@@ -234,7 +215,7 @@ async function main(){
             var stxt=await sr.text();
             await cache.put(file,new Response(stxt,{headers:{'Content-Type':'application/javascript'}}));
           }
-        }catch(e){}          /* 單科失敗不擋整體,進神器後該科會現場抓 */
+        }catch(e){}
         setP(0.5+((i+1)/subjects.length)*0.5);
         setTxt(Math.round(pT*100)+'%');
       }
