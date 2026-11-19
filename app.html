@@ -10678,26 +10678,35 @@ document.addEventListener('click',function(e){
 </script>
 
 <script>
-/* ══════════ 試題庫防覆寫 v1:閱讀頁不在畫面上時,禁止舊快照寫回筆記 ══════════ */
+/* ══════════ 試題庫/作答紀錄防覆寫 v2 ══════════ */
 (function(){
 'use strict';
-if(window.__libNoClobberV1)return;
-window.__libNoClobberV1=1;
+if(window.__libNoClobberV2)return;
+window.__libNoClobberV2=1;
 function inLib(){
   try{ return typeof lib!=='undefined'&&lib&&lib.style.display!=='none'; }catch(e){ return false; }
-}
-function roundPageVisible(){
-  try{ return typeof view!=='undefined'&&view&&view.style.display!=='none'; }catch(e){ return false; }
 }
 function liveRound(){
   try{ return !!(current&&!current.isTrend&&!current.isExam&&!current.isQA); }catch(e){ return false; }
 }
-/* 該擋的兩種情況:
-   ① 人在試題庫(閱讀頁隱藏但 current 還留著)→ 由試題庫佇列負責存
-   ② 閱讀頁不在畫面上(首頁/考試選單等)→ docEl 快照不可信 */
-function blockStaleSave(){
-  return (inLib()||!roundPageVisible())&&liveRound();
+function liveExamRecord(){
+  /* 已寫過試卷頁:isExam 且有原始回次(current.origLabel)。
+     這頁的 docEl 是「重建版」,不是該回筆記,閱讀頁的通用快照存檔一律不可信 */
+  try{ return !!(current&&current.isExam&&current.origLabel); }catch(e){ return false; }
 }
+/* 該擋的場景:
+   ① 人在試題庫(閱讀頁隱藏但 current 留著)→ 由試題庫佇列負責
+   ② current 是普通閱讀回,但人已不在 #view(首頁/考試選單/試題庫)
+   ③ current 是作答紀錄頁 → 只能走 syncRecordToNote 專用路徑,
+      通用 saveNotes/autoSavePaper 整份寫回一律擋掉 */
+function blockStaleSave(){
+  if(liveExamRecord())return true;
+  return (inLib()||liveRound()&&!viewVisible())&&true;
+}
+function viewVisible(){
+  try{ return typeof view!=='undefined'&&view&&view.style.display!=='none'; }catch(e){ return false; }
+}
+/* 攔四個出口 */
 var snPrev=saveNotes;
 saveNotes=function(){
   if(blockStaleSave())return Promise.resolve();
@@ -10713,9 +10722,19 @@ flushNotesKeepalive=function(){
   if(blockStaleSave())return;
   return fkPrev.apply(this,arguments);
 };
+/* flushNotesNow 同樣要擋(它會先寫草稿再存筆記) */
+var fnPrev=flushNotesNow;
+flushNotesNow=function(){
+  if(liveExamRecord()){
+    /* 作答紀錄頁:草稿不需要,改走 syncRecordToNote 專用路徑 */
+    try{ if(typeof syncRecordToNote==='function')syncRecordToNote(); }catch(e){}
+    return;
+  }
+  if(inLib()||(liveRound()&&!viewVisible()))return;   /* 舊快照不可信,不存 */
+  return fnPrev.apply(this,arguments);
+};
 })();
 </script>
-
 
 
 <script>
