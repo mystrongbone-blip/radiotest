@@ -650,8 +650,8 @@ body{background:#14151b !important}
    一組金鑰最多 5 台裝置；同裝置重開不重複扣（裝置碼辨認）
    首次啟用需連線；之後同裝置離線放行（本機授權記錄 licenseRec）
    ══════════════════════════════════════════════════════════════ */
-var API_URL = 'https://script.google.com/macros/s/AKfycbxAEQvQ6A0Ctu8qkEeX-BkOT7KKYqXFpFC14xfhZrheuarhLSVSo0-ZWhPIdVfP7OeEig/exec';   /* ← 填 Apps Script 部署網址（/exec 結尾） */
-var API_KEY = 'PLw1OZKoFm2lEt8Ykc3bBU9J4zCgjyQA';                          /* ← 填與 Apps Script 相同的密鑰 */
+var API_URL = 'https://script.google.com/macros/s/AKfycbxAEQvQ6A0Ctu8qkEeX-BkOT7KKYqXFpFC14xfhZrheuarhLSVSo0-ZWhPIdVfP7OeEig/exec';   /* ← 填哆啦呦噠結尾） */
+var API_KEY = 'PLw1OZKoFm2lEt8Ykc3bBU9J4zCgjyQA';                          /* ← 填與哆啦呦噠相同 */
 var KEY_FORMAT = /^[A-Z2-9]{4}-[A-Z2-9]{4}-[A-Z2-9]{4}-[A-Z2-9]{4}$/;
 var LIC_STORE = 'licenseRec';
 
@@ -806,6 +806,7 @@ function doActivate(dev){
   callServer(dev, key, 'activate').then(function(j){
     if(j && j.ok){
       saveLic({ key: key, dev: dev, date: new Date().toLocaleString() });
+          markOk();
       markUnlocked();
       try{
         if(!IS_MOBILE_BUILD && (location.protocol === 'http:' || location.protocol === 'https:')){
@@ -829,13 +830,112 @@ function doActivate(dev){
   });
 }
 
+
+/* ── 靜默驗證＋7 天寬限期（check 唯讀，不消耗裝置次數） ── */
+var GRACE_DAYS=7;
+function lastOk(){ try{ return parseInt(localStorage.getItem('licLastOk')||'0',10)||0; }catch(e){ return 0; } }
+function markOk(){ try{ localStorage.setItem('licLastOk',String(Date.now())); }catch(e){} }
+function isRevokedMsg(j){
+  return !!(j&&j.ok===false&&/不存在|註銷/.test(String(j.msg||'')));
+}
+function isKickedMsg(j){
+  return !!(j&&j.ok===false&&/未登錄/.test(String(j.msg||'')));
+}
+function clearLicense(){
+  try{ localStorage.removeItem(LIC_STORE); localStorage.removeItem('unlocked'); localStorage.removeItem('licLastOk'); }catch(e){}
+  try{
+    var x=new XMLHttpRequest();
+    x.open('POST','/api/save_license',false);
+    x.setRequestHeader('Content-Type','application/json');
+    x.send(JSON.stringify({key:'',dev:''}));
+  }catch(e){}
+}
+function showRecheck(dev,key){
+  var old=document.getElementById('keyLock');
+  if(old)old.remove();
+  var div=document.createElement('div');
+  div.id='keyLock';
+  div.style.cssText='position:fixed;inset:0;background:#14151b;z-index:99999;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;color:#fff;padding:20px;text-align:center';
+  div.innerHTML=
+    '<div style="font-size:26px">🔑</div>'+
+    '<div style="font-size:16px;color:#9aa0b0">驗證中…</div>'+
+    '<button id="recheckBtn" style="display:none;padding:10px 28px;border-radius:8px;border:none;background:#4f8cff;color:#fff;font-size:15px;font-weight:700;cursor:pointer">🔄 再次驗證（不消耗次數）</button>'+
+    '<div id="recheckMsg" style="font-size:12px;color:#e11d48;min-height:18px"></div>';
+  document.body.appendChild(div);
+  var msg=div.querySelector('#recheckMsg'),btn=div.querySelector('#recheckBtn');
+  function fail(){
+    msg.textContent='無法連線，請確認網路後再試（不會消耗次數）';
+    btn.style.display='';
+  }
+  function run(){
+    msg.textContent='';
+    btn.style.display='none';
+    callServer(dev,key,'check').then(function(j){
+      if(j&&j.ok){ markOk(); unlock(); return; }
+      if(isKickedMsg(j)){
+        clearLicense();
+        showLock(dev,'input','裝置已登出，請重新輸入金鑰');
+        return;
+      }
+    if(isKickedMsg(j)){
+      clearLicense();
+      showLock(dev,'input','裝置已登出，請重新輸入金鑰');
+      return;
+    }
+    if(isRevokedMsg(j)){
+      clearLicense();
+      showLock(dev,'input','此金鑰已註銷（因退貨）');
+    }
+      fail();
+    }).catch(fail);
+  }
+  btn.onclick=run;
+  run();   /* 一跳出來就自動驗：哆啦呦噠的人半秒通過 */
+}
+/* ── 週期驗證：哆啦呦噠── */
+var _licTimer=null;
+function scheduleLicCheck(dev,key){
+  clearInterval(_licTimer);
+  _licTimer=setInterval(function(){
+    callServer(dev,key,'check').then(function(j){
+      if(j&&j.ok){ markOk(); return; }
+      if(isKickedMsg(j)){
+        clearInterval(_licTimer);
+        clearLicense();
+        showLock(dev,'input','裝置已登出，請重新輸入金鑰');
+      }else if(isRevokedMsg(j)){
+        clearInterval(_licTimer);
+        clearLicense();
+        showLock(dev,'input','此金鑰已註銷（因退貨）');
+      }
+    }).catch(function(){});   /* 哆啦呦噠靜默，不打擾 */
+  },30*60*1000);              /* 30 分鐘 */
+}
+function watchLicense(dev,key){
+  if(!lastOk())markOk();   /* 舊用戶升級首啟直接補記，不跳驗證 */
+  var stale=(Date.now()-lastOk())>GRACE_DAYS*86400000;
+  if(stale){ showRecheck(dev,key); return; }
+  unlock();
+  scheduleLicCheck(dev,key);   /* ← 加這行 */
+  callServer(dev,key,'check').then(function(j){
+    if(j&&j.ok){ markOk(); return; }
+    if(isKickedMsg(j)){
+      clearLicense();
+      showLock(dev,'input','裝置已登出，請重新輸入金鑰');
+      return;
+    }
+    if(isRevokedMsg(j)){
+      clearLicense();
+      showLock(dev,'input','此金鑰已註銷（因退貨）');
+    }
+  }).catch(function(){});   /* 哆啦呦噠放行，不打擾 */
+}
 /* ---------- 主流程 ---------- */
 function runKeyLock(){
   getDeviceCode().then(function(dev){
     var lic = loadLic();
     if(lic && lic.key && lic.dev === dev){
-      unlock();
-      callServer(dev, lic.key, 'check').catch(function(){});
+      watchLicense(dev, lic.key);
       return;
     }
     /* 桌機：問 Python 端授權檔（exe 的 localStorage 可能每次清空） */
@@ -848,8 +948,7 @@ function runKeyLock(){
           var j = JSON.parse(x.responseText);
           if(j && j.ok && j.data && j.data.key && j.data.dev === dev){
             saveLic({ key: j.data.key, dev: dev, date: j.data.date || '' });
-            unlock();
-            callServer(dev, j.data.key, 'check').catch(function(){});
+            watchLicense(dev, j.data.key);
             return;
           }
         }
@@ -1697,6 +1796,8 @@ async function openRound(subject,rd,applySavedNotes=true){
   injectSaveButtons();
   applyNotes();
   if(window.__reinstateFileStyles)window.__reinstateFileStyles(r.html);
+  if(window.__animCapturePristine)window.__animCapturePristine(r.html, subject+'/'+rd.label);
+  if(window.__animRevive)window.__animRevive();
   convertDocToExamStyle(docEl);
   enhanceSimilarLinks();
   buildQnav();
@@ -1962,6 +2063,7 @@ function showComparePair(title,leftHtml,rightHtml,src){
     $('cmpRightR').addEventListener('click',e=>{
       if(!cmpEraser)return;
       const t=e.target;
+      if(t&&t.closest&&t.closest('.anim-lock'))return;    /* ← 插這行 */
       if(t&&t.style&&t.style.backgroundColor){
         t.style.backgroundColor='';
         showToast('🧽 已消除');
@@ -2227,6 +2329,7 @@ $('btnEraser').onclick=()=>{
 docEl.addEventListener('click',e=>{
   if(!eraserMode)return;
   const t=e.target;
+  if(t&&t.closest&&t.closest('.anim-lock'))return;        /* ← 插這行 */
   if(t&&t.style&&t.style.backgroundColor){
     noteSnapNow();
     t.style.backgroundColor='';
@@ -2246,14 +2349,14 @@ docEl.addEventListener('click',function(e){
   if(current&&current.isTrend)return;
   const t=e.target;
   if(!t||!t.closest)return;
-  if(t.closest('a,button,label.saveQ,.imgW,.nbBar,.hl-btn,.sim-add,#qnav'))return;
+   if(t.closest('a,button,label.saveQ,.imgW,.nbBar,.hl-btn,.sim-add,#qnav,.anim-lock'))return;
   showToast('請先點擊「✏️ 編輯文字」即可開始筆記');
 });
 libBody.addEventListener('click',function(e){
   if(editModeLib)return;
   const t=e.target;
   if(!t||!t.closest)return;
-  if(t.closest('button,a,.imgW,.nbBar,.hl-btn,.sim-add'))return;
+   if(t.closest('button,a,.imgW,.nbBar,.hl-btn,.sim-add,.anim-lock'))return;
   showToast('請先點擊「✏️ 編輯」即可開始筆記');
 });
 $('btnZoomIn').onclick=()=>{
@@ -2811,6 +2914,7 @@ function makeWin(title,leftHtml,rightHtml,src){
   body.addEventListener('click',e=>{
     if(!st.erOn)return;
     const t=e.target;
+    if(t&&t.closest&&t.closest('.anim-lock'))return;      /* ← 插這行 */
     if(t&&t.style&&t.style.backgroundColor){
       t.style.backgroundColor='';
       sync();
@@ -3489,6 +3593,7 @@ $('btnEraserLib').onclick=()=>{
 libBody.addEventListener('click',e=>{
   if(!eraserModeLib)return;
   const t=e.target;
+  if(t&&t.closest&&t.closest('.anim-lock'))return;        /* ← 插這行 */
   if(t&&t.style&&t.style.backgroundColor){
     t.style.backgroundColor='';
     const card=t.closest('.libq');
@@ -4302,6 +4407,22 @@ async function openExamRecord(subject,label,attempt){
   buildSideNav();
   cleanupEmptyTableParts(docEl);
   imgRenderAll(docEl);
+  cleanupEmptyTableParts(docEl);
+  imgRenderAll(docEl);
+  /* 作答紀錄頁：從原始詳解檔抓動畫佔位碼並重生（防止掛載後結構被存進筆記） */
+  (function(){
+    var f=orig.file||rec.file||'';
+    if(!f||!window.__animCapturePristine)return;
+    api('/api/round',{file:f}).then(function(x){
+      if(x&&x.ok&&current&&current.isExam
+         &&(current.origSubject||current.subject)===subject
+         &&(current.origLabel||current.label)===label){
+        window.__animCapturePristine(x.html, subject+'/'+label);
+        window.__animRevive();
+      }
+    }).catch(function(){});
+  })();
+  syncLibToCheckboxes();
   syncLibToCheckboxes();
   setExamTakeUI(false);
   home.style.display='none';
@@ -7194,7 +7315,6 @@ scheduleBackupReminders();
   function initScBox(app){
     if(!app || app.getAttribute('data-sc-init')) return;
     app.setAttribute('data-sc-init','1');
-
     try{
       var stage  = app.querySelector('.scStage');
       var canvas = app.querySelector('.scCanvas');
@@ -7751,38 +7871,51 @@ scheduleBackupReminders();
         }
       }, 700);
 
-      console.log(TAG, '初始化完成', app);
+            app.__scBoxLive=true;
+            console.log(TAG, '初始化完成', app);
 
     }catch(err){
       console.error(TAG, '初始化失敗：', err);
     }
   }
 
-  /* ================= 4. 掛載 ================= */
+  /* ================= 4. 掛載（自我修復版） ================= */
   function mountScBox(holder){
-    if(!holder || holder.getAttribute('data-sc-done')) return;
-    holder.setAttribute('data-sc-done','1');
-
+    if(!holder) return;
     var app = holder.querySelector('.scApp');
-    if(!app){
-      holder.innerHTML = SKELETON;
-      app = holder.querySelector('.scApp');
-    }
-    if(app){
-      initScBox(app);
+    /* 健康＝本次 session 初始化過且 canvas 還在。
+       舊筆記殘骸的章是上個 session 蓋的（token 對不上）、canvas 常被剝掉 → 一律整個重建 */
+    var healthy = holder.getAttribute('data-sc-done') && app
+                  && app.__scBoxLive
+                  && app.querySelector('canvas.scCanvas');
+    if(healthy) return;
+    holder.removeAttribute('data-sc-done');
+    holder.innerHTML = SKELETON;
+    holder.setAttribute('data-sc-done','1');
+    var app2 = holder.querySelector('.scApp');
+    if(app2){
+      initScBox(app2);
     }else{
       console.warn(TAG, '骨架注入失敗', holder);
     }
   }
-
   window.initScBox = initScBox;
-
   window.scanScBox = function(root){
     var scope = (root && root.querySelectorAll) ? root : document;
     var holders = scope.querySelectorAll('[data-anim="scbox"]');
     Array.prototype.forEach.call(holders, mountScBox);
+    /* 裸 .scApp 殘骸（舊筆記可能只剩這個、沒有 holder 外殼）也一併重建 */
     var apps = scope.querySelectorAll('.scApp');
-    Array.prototype.forEach.call(apps, initScBox);
+    Array.prototype.forEach.call(apps, function(app){
+      if(app.__scBoxLive) return;   /* 只有「本次 JS 初始化的活體」才跳過；屍體一律重建 */
+      var fresh = document.createElement('div');
+      fresh.innerHTML = SKELETON;
+      var nu = fresh.firstElementChild;
+      if(nu && app.parentNode){
+        app.parentNode.replaceChild(nu, app);
+        initScBox(nu);
+      }
+    });
     return holders.length;
   };
 
@@ -7918,7 +8051,7 @@ var ENVT=(function(){
 var ENVMIN=(function(){var m=1,i;for(i=0;i<256;i++) if(ENVT[i]<m) m=ENVT[i]; return m;})();
 
 function initDopplerBox(box){
-  if(!box||box.dataset.dpInit==='1')return;
+   if(!box||(box.dataset.dpInit==='1'&&box.__dpLive))return;
   if(!box.querySelector('.dpCanvas')||!box.querySelector('.dpSpec'))return;
   box.dataset.dpInit='1';
 
@@ -10902,6 +11035,334 @@ console.log('[roundClean] v3 ready');
 })();
 </script>
 
+
+<script>
+/* ══════════ 動畫／互動保護 v1（最終版）══════════
+   範圍：.anim（SVG 動圖）、#wlAnimBox（CT 窗寬窗位）、.dopplerBox（都卜勒）、
+         [data-anim]／.scApp（SPECT 方塊）＋自動偵測：
+         ② 任何含 SMIL 動畫的 SVG（不限 class）
+         ③ 詳解區內任何含 <canvas> 的互動容器（CT 動畫等全部自動涵蓋）
+   效果：① 點擊只互動，不跳「請先點擊編輯」提示
+         ② 不可編輯：打字、上色、字級、插圖全部擋下
+         ③ 退格／Delete 不吃掉動畫本體 */
+(function(){
+'use strict';
+if(window.__animLockV1)return;
+window.__animLockV1=1;
+/* 之後只有「純 CSS 動畫」的新互動容器（無 canvas 也無 SVG SMIL）才需要加進這一行 */
+var ANIM_SEL='.anim,#wlAnimBox,.wlAnimBox,.dopplerBox,.scApp,[data-anim]';
+var HOSTS='#doc,.libq-body,.win-body,.win-left,.win-right-body,#cmpRightR,.cv-doc';
+
+function lockAnims(root){
+  var scope=root||document;
+  if(!scope||!scope.querySelectorAll)return;
+  /* ① 明確清單（已知的互動容器） */
+  scope.querySelectorAll(ANIM_SEL).forEach(function(el){
+    if(el.getAttribute('contenteditable')!=='false')el.setAttribute('contenteditable','false');
+    el.classList.add('anim-lock');
+  });
+  /* ② 兜底：含 SMIL 動畫的 SVG（自動偵測，不限 class） */
+  scope.querySelectorAll('svg').forEach(function(sv){
+    if(!sv.querySelector('animate,animateTransform,animateMotion'))return;
+    if(sv.closest&&sv.closest(ANIM_SEL))return;
+    if(sv.getAttribute('contenteditable')!=='false')sv.setAttribute('contenteditable','false');
+    sv.classList.add('anim-lock');
+  });
+  /* ③ 兜底：詳解區內含 <canvas> 的互動容器（CT、窗寬窗位、都卜勒、SPECT…自動涵蓋） */
+  scope.querySelectorAll('canvas').forEach(function(cv){
+    if(!cv.closest)return;
+    if(cv.closest('.anim-lock'))return;
+    if(!cv.closest(HOSTS))return;
+    var el=cv.closest(HOSTS+' > *');   /* 往上找到詳解主機的直接子層＝互動容器根 */
+    if(!el)return;
+    if(el.getAttribute('contenteditable')!=='false')el.setAttribute('contenteditable','false');
+    el.classList.add('anim-lock');
+  });
+}
+window.lockAnims=lockAnims;
+
+/* 每次重繪後自動補鎖（含動圖延遲渲染、彈窗、對照、試題庫） */
+var cvtPrev=convertDocToExamStyle;
+convertDocToExamStyle=function(root){
+  var r=cvtPrev.apply(this,arguments);
+  try{lockAnims(root||docEl);}catch(e){}
+  return r;
+};
+var t=null;
+try{
+  new MutationObserver(function(){
+    clearTimeout(t);
+    t=setTimeout(function(){
+      try{
+        lockAnims(docEl);
+        document.querySelectorAll('.libq-body,.win-body,.win-left,.win-right-body,#cmpRightR,.cv-doc').forEach(function(b){lockAnims(b);});
+      }catch(e){}
+    },400);
+  }).observe(document.body,{childList:true,subtree:true});
+}catch(e){}
+setTimeout(function(){try{lockAnims(document);}catch(e){}},600);
+
+/* ── 格式指令防護：選取碰到動畫一律擋 ── */
+function selTouchesAnim(){
+  var sel=window.getSelection();
+  if(!sel||!sel.rangeCount)return false;
+  var r=sel.getRangeAt(0);
+  var list=document.querySelectorAll('.anim-lock');
+  for(var i=0;i<list.length;i++){
+    try{ if(r.intersectsNode(list[i]))return true; }catch(e){}
+  }
+  var chk=function(n){
+    var el=(n&&n.nodeType===1)?n:(n&&n.parentElement);
+    return !!(el&&el.closest&&el.closest('.anim-lock'));
+  };
+  return chk(r.startContainer)||chk(r.endContainer);
+}
+var execPrev=document.execCommand.bind(document);
+document.execCommand=function(cmd,ui,val){
+  var c=String(cmd||'').toLowerCase();
+  if(c==='undo'||c==='redo'||c==='selectall'||c==='copy'||c==='stylewithcss')return execPrev(cmd,ui,val);
+  if(selTouchesAnim()){
+    showToast('🔒 動畫與互動區不可修改');
+    return false;
+  }
+  return execPrev(cmd,ui,val);
+};
+var hlPrev=window.applyHlToSelection;
+if(typeof hlPrev==='function'){
+  window.applyHlToSelection=function(){
+    if(selTouchesAnim()){showToast('🔒 動畫與互動區不可上色');return false;}
+    return hlPrev.apply(window,arguments);
+  };
+}
+var fsPrev=window.fontSel;
+if(typeof fsPrev==='function'){
+  window.fontSel=function(){
+    if(selTouchesAnim())return null;
+    return fsPrev.apply(window,arguments);
+  };
+}
+
+/* ── 刪除防護：退格／Delete 不吃掉動畫 ── */
+function hitAnim(r){
+  var list=document.querySelectorAll('.anim-lock');
+  for(var i=0;i<list.length;i++){
+    try{ if(r.intersectsNode(list[i]))return list[i]; }catch(e){}
+  }
+  return null;
+}
+function walk(el,back){
+  while(el){
+    if(el.nodeType===1){
+      if(el.classList&&el.classList.contains('anim-lock'))return el;
+      if(el.querySelector){
+        var f=el.querySelector('.anim-lock');
+        if(f)return f;
+      }
+    }
+    el=back?el.previousSibling:el.nextSibling;
+  }
+  return null;
+}
+function animNearCaret(r,back){
+  var sc=r.startContainer;
+  if(sc.nodeType===3){
+    var len=(sc.nodeValue||'').length;
+    if(back&&r.startOffset>0){
+      var p=document.createRange();
+      p.setStart(sc,r.startOffset-1);p.setEnd(sc,r.startOffset);
+      return hitAnim(p);
+    }
+    if(!back&&r.startOffset<len){
+      var p2=document.createRange();
+      p2.setStart(sc,r.startOffset);p2.setEnd(sc,r.startOffset+1);
+      return hitAnim(p2);
+    }
+    var el=sc.parentElement;
+    return el?walk(back?el.previousSibling:el.nextSibling,back):null;
+  }
+  var idx=r.startOffset+(back?-1:0);
+  if(idx<0||idx>=sc.childNodes.length){
+    var el2=back?sc.previousSibling:sc.nextSibling;
+    return el2?walk(el2,back):null;
+  }
+  var n=sc.childNodes[idx];
+  return n?walk(n,back):null;
+}
+document.addEventListener('keydown',function(e){
+  if(e.key!=='Backspace'&&e.key!=='Delete')return;
+  if(e.target&&(e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA'))return;
+  var sel=window.getSelection();
+  if(!sel||!sel.rangeCount)return;
+  var r=sel.getRangeAt(0);
+  var hit=sel.isCollapsed?animNearCaret(r,e.key==='Backspace'):hitAnim(r);
+  if(hit){
+    e.preventDefault();
+    showToast('🔒 動畫與互動區不可刪除');
+  }
+},true);
+
+/* ── 插圖防護：最後點在動畫上就不給插入 ── */
+var lastAnim=false;
+document.addEventListener('mousedown',function(e){
+  var t=e.target;
+  if(!t||!t.closest)return;
+  if(t.closest('#btnImage,#btnImageLib,.wt-img,#cmpImg'))return;
+  lastAnim=!!t.closest('.anim-lock');
+},true);
+window.addEventListener('click',function(e){
+  var b=e.target&&e.target.closest?e.target.closest('#btnImage,#btnImageLib,.wt-img,#cmpImg'):null;
+  if(!b||!lastAnim)return;
+  e.preventDefault();
+  e.stopImmediatePropagation();
+  showToast('🔒 動畫與互動區不可插入圖片，請插在動畫外的文字區');
+},true);
+})();
+</script>
+
+<script>
+/* ══════════ 動畫存檔還原 v1 ══════════
+   問題：dopplerBox／scBox／wlInteract(CT)／.anim 的詳解檔只放「原始佔位碼」，
+   載入時掛載成互動結構；做筆記時掛載後的結構被整包存進筆記，
+   下次開啟只剩殘骸（done 標記＋被剝掉的 canvas）→ 動畫死掉。
+   解法：①開回時從原始詳解檔取出動畫原始碼
+         ②開回後把頁面上的動畫容器換回原始碼（重生；掛載器自動接手）
+         ③所有存檔路徑一律以原始碼取代掛載結構 → 筆記永遠只存佔位碼
+   舊筆記已被汙染的：開回時自動修復並回存。 */
+(function(){
+'use strict';
+if(window.__animDehydV1)return;
+window.__animDehydV1=1;
+var ANIM_SEL='.anim,#wlAnimBox,.wlAnimBox,.dopplerBox,[data-anim]';
+var MARKS=['data-dp-init','data-sc-done','data-sc-init','data-sc-sess','data-done'];
+var SEQ=0;
+var pristMap={};   /* 回次key -> [原始碼] */
+var reg={};        /* data-anim-id -> 原始碼 */
+var curKey='';
+
+function rKeyOf(c){
+  try{
+    if(!c)return '';
+    return (c.origSubject||c.subject||'')+'/'+(c.origLabel||c.label||'');
+  }catch(e){return '';}
+}
+function topContainers(root){
+  var out=[];
+  (root||document).querySelectorAll(ANIM_SEL).forEach(function(el){
+    var p=el.parentElement;
+    if(p&&p.closest&&p.closest(ANIM_SEL))return;   /* 巢狀只抓最外層 */
+    out.push(el);
+  });
+  return out;
+}
+function tagId(html,id){
+  return String(html).replace(/^(\s*<[a-zA-Z]+)/,'$1 data-anim-id="'+id+'"');
+}
+function sanitize(el){
+  /* JS 掛載型（data-anim：佔位是空的、內容全由 JS 生成，如 scBox）
+     → 只留乾淨佔位，殘骸（缺 canvas 的骨架、data-sc-init）一律丟棄 */
+  var da=el.getAttribute&&el.getAttribute('data-anim');
+  if(da)return '<div data-anim="'+da+'"></div>';
+  var d=document.createElement('div');
+  d.innerHTML=el.outerHTML;
+  var t=d.firstElementChild;
+  if(t)MARKS.forEach(function(a){t.removeAttribute(a);});
+  return d.innerHTML;
+}
+/* ① 從原始詳解 HTML 抽出動畫原始碼 */
+window.__animCapturePristine=function(html,key){
+  curKey=key||rKeyOf(current);
+  if(!curKey)return;
+  var d=document.createElement('div');
+  d.innerHTML=String(html||'');
+  pristMap[curKey]=topContainers(d).map(function(el){return el.outerHTML;});
+};
+/* ② 重生：頁面上的動畫容器換回原始碼（冪等；筆記本來就是原始碼的跳過） */
+window.__animRevive=function(){
+  var prist=pristMap[curKey]||[];
+  if(!prist.length)return;
+  var seq=++SEQ;
+  var live=topContainers(docEl);
+  var n=Math.min(prist.length,live.length),changed=0;
+  for(var i=0;i<n;i++){
+    /* 開回一定是全新渲染，一律用原始檔的乾淨佔位重建，
+       不看 data-anim-id，避免 id 被誤標在汙染容器上時永久跳過 */
+    var d=document.createElement('div');
+    d.innerHTML=prist[i];
+    var el=d.firstElementChild;
+    if(!el)continue;
+    var id='ANIM_'+seq+'_'+i;
+    el.setAttribute('data-anim-id',id);
+    reg[id]=prist[i];
+    live[i].replaceWith(el);
+    changed++;
+  }
+  if(changed){try{noteSnapNow();}catch(e){}try{scheduleAutoSave();}catch(e){}}
+};
+/* 共用：把 root 內的動畫容器換成 token，回傳 stash；byPos=整回文件才開 */
+function dehydrateInto(root,byPos,push){
+  var prist=pristMap[curKey]||[];
+  topContainers(root).forEach(function(el,idx){
+    var id=el.getAttribute('data-anim-id');
+    var html=null,useId=null;
+    if(id&&reg[id]){html=reg[id];useId=id;}
+    else if(byPos&&prist[idx]){html=prist[idx];useId='ANIM_X_'+idx;}
+    else{html=sanitize(el);useId=id||('ANIM_K_'+idx);}
+    var i=push(tagId(html,useId));
+    el.replaceWith(document.createTextNode('\u0001'+i+'\u0001'));
+  });
+}
+function rejoin(text,stash){
+  stash.forEach(function(s,i){text=text.split('\u0001'+i+'\u0001').join(s);});
+  return text;
+}
+/* ③-1 存檔總口徑：筆記裡的動畫一律是原始佔位碼（token 先擋 canvas 剝除再放回） */
+var cnPrev=collectNotes;
+collectNotes=function(){
+  try{
+    var clone=docEl.cloneNode(true);
+    if(clone.querySelector(ANIM_SEL)){
+      var stash=[];
+      dehydrateInto(clone,true,function(html){stash.push(html);return stash.length-1;});
+      var text=clone.innerHTML.replace(/<canvas[\s\S]*?<\/canvas>/g,'');
+      return {text:rejoin(text,stash),saved:savedArr()};
+    }
+  }catch(e){}
+  return cnPrev.apply(this,arguments);
+};
+/* ③-2 彈窗／試題庫寫回片段時同樣還原（pushQ、syncWinEdit 都走 cleanChunkHtml） */
+var cchPrev=cleanChunkHtml;
+cleanChunkHtml=function(){
+  var out=cchPrev.apply(this,arguments);
+  try{
+    var d=document.createElement('div');
+    d.innerHTML=out;
+    if(d.querySelector(ANIM_SEL)){
+      var stash=[];
+      dehydrateInto(d,false,function(html){stash.push(html);return stash.length-1;});
+      out=rejoin(d.innerHTML,stash);
+    }
+  }catch(e){}
+  return out;
+};
+
+/* ④ innerHTML 回灌後自癒：復原/重做、對照套用會把「掛載後結構」塞回頁面，
+   canvas 經 innerHTML 來回會變空白畫布 → 統一在回灌後 revive（換回原始佔位碼重掛） */
+var nrPrev=noteRestore;
+noteRestore=function(html){
+  var r=nrPrev.apply(this,arguments);
+  try{__animRevive();}catch(e){}
+  return r;
+};
+var acePrev2=applyCompareEdit;
+applyCompareEdit=function(src){
+  var r=acePrev2.apply(this,arguments);
+  try{if(src&&src.type==='round')__animRevive();}catch(e){}
+  return r;
+};
+
+console.log('[animDehydrate] v1 ready');
+})();
+</script>
 
 
 </body>

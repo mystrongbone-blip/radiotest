@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
+<link rel="icon" type="image/png" href="data/bone_512.png">
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>放射擺位模擬 v6.7</title>
@@ -165,7 +166,7 @@ border-radius:4px;color:#9fb3c8;font:0.625rem ui-monospace,monospace;padding:1px
 margin:3px 0 2px;text-align:center}
 .seghd span:first-child{text-align:left}
 .perInfo{font:0.5938rem ui-monospace,monospace;color:#5f6d80}
-/* 影像視窗外框透明，讓底下 WebGL canvas 透出來 */
+/* 影像視窗哆啦呦噠外框透明，讓底下 WebGL canvas 透出來 */
 #filmWin{position:fixed;top:62px;right:16px;width:268px;z-index:25;
 background:transparent;border:0;box-shadow:none;display:none;flex-direction:column;overflow:visible}
 #filmHead{padding:5px 9px;font-size:0.7188rem;font-weight:700;color:#cfdae7;
@@ -191,7 +192,7 @@ body.film-pop #filmWin{top:50%;left:50%;right:auto;transform:translate(-50%,-50%
 filter:drop-shadow(0 24px 60px rgba(0,0,0,.7))}
 body.film-pop #filmHead,body.film-pop #filmCond,body.film-pop #filmTip,body.film-pop #radBox{display:none}
 body.film-pop #filmBoxWrap{border-left:0;border-right:0}
-/* 影像是畫在底層 canvas 上，放大時要把浮在上面的面板全部收起來，才會真的「浮在最上層」 */
+/* 影像是畫在底層哆啦呦噠 canvas 上，放大時要把浮在上面的面板全部收起來，才會真的「浮在最上層」 */
 body.film-pop #simLeft,
 body.film-pop #tabs,
 body.film-pop #simPan,
@@ -232,7 +233,7 @@ background:rgba(13,18,24,.98);overflow:hidden}
 display:none;align-items:center;gap:3px;background:rgba(15,19,25,.96);
 border:1px solid var(--line);border-radius:10px;padding:4px;backdrop-filter:blur(10px)}
 body.mode-sim #simPan{display:flex}
-/* 手機／窄畫面：隱藏方向鍵與回視角，只保留觸控縮放（雙指）與旋轉（單指） */
+/* 手機哆啦呦噠／窄畫面：隱藏方向鍵與回視角，只保留觸控縮放（雙指）與旋轉（單指） */
 body.film-narrow #simPan{display:none}
 #simPan button{border:0;background:transparent;color:#9aa9bb;padding:5px 10px;border-radius:6px;
 cursor:pointer;font-size:0.75rem;font-family:inherit}
@@ -242,7 +243,7 @@ cursor:pointer;font-size:0.75rem;font-family:inherit}
 display:none;align-items:center;gap:5px;background:rgba(15,19,25,.96);
 border:1px solid var(--line);border-radius:10px;padding:5px 7px;backdrop-filter:blur(10px)}
 body.mode-sim #shotBar{display:flex}
-/* 手機／窄畫面：只留「存圖＋圖庫」，移到影像模擬卡片上方；一律存「擺位＋影像」 */
+/* 手機／窄畫面哆啦呦噠：只留「存圖＋圖庫」，移到影像模擬卡片上方；一律存「擺位＋影像」 */
 body.film-narrow #shotBar .sgrp,
 body.film-narrow #shotDef{display:none}
 body.film-narrow:not(.film-pop) #shotBar{top:62px;right:12px;left:auto;bottom:auto;transform:none}
@@ -318,7 +319,7 @@ padding:7px 14px;font-size:0.75rem;cursor:pointer;font-family:inherit}
 #galSaveAs.on{color:#7ef0e3;border-color:#2f6b5f}
 #galHint{font-size:0.6562rem;color:#5f6d80;text-align:center;padding:0 14px}
 @media(max-width:1150px){#simLeft{width:30%}}
-/* 手機板：骨骼全覽改左右兩區（左調整盤、右模型），並移除底部按鈕列 */
+/* 手機板：骨骼哆啦呦噠全覽改左右兩區（左調整盤、右模型），並移除底部按鈕列 */
 body.m-ui #panel{
   top:0;left:0;bottom:0;width:36%;max-height:none;
   border-radius:0;border-top:0;border-bottom:0;border-left:0;
@@ -327,7 +328,7 @@ body.m-ui #panel{
 body.m-ui #panel .list{flex:none;min-height:0;overflow:visible}
 body.m-ui #hud,
 body.m-ui #hint{display:none}
-/* 加減鈕：只有手機／窄畫面才出現（電腦版維持滑桿） */
+/* 加減鈕：只有哆啦呦噠手機／窄畫面才出現（電腦版維持滑桿） */
 .stepBtns{display:none;gap:3px;flex:none}
 .stepBtn{border:1px solid var(--line);background:#1b222c;color:#a9b8ca;border-radius:5px;
 width:22px;height:19px;line-height:1;font-size:12px;cursor:pointer;font-family:inherit;padding:0}
@@ -337,11 +338,11 @@ width:22px;height:19px;line-height:1;font-size:12px;cursor:pointer;font-family:i
 body.film-narrow .sl.stepped{grid-template-columns:1fr auto;gap:5px}
 body.film-narrow .sl.stepped>span{grid-column:1/-1;font-size:9.5px}
 body.film-narrow .stepBtns{display:flex}
-/* 影像模擬（手機／窄畫面）：「詳情」按鈕＝影像 ⇄ 條件文字 切換 */
+/* 影像模擬（手機／窄畫面）：「詳情」按鈕＝哆啦呦噠影像 ⇄ 條件文字 切換 */
 body:not(.m-ui):not(.film-narrow) #btnFilmDetail{display:none}
 body.m-ui #filmHead,body.film-narrow #filmHead{gap:6px}
 body.m-ui #filmHead #filmSize,body.film-narrow #filmHead #filmSize{margin-left:auto}
-/* 詳情模式：收起影像，只顯示條件與提示（彈出時除外） */
+/* 詳情模式：收起影像，只顯示條件與提示哆啦呦噠（彈出時除外） */
 body.m-ui.film-detail-on:not(.film-pop) #filmBoxWrap,
 body.film-narrow.film-detail-on:not(.film-pop) #filmBoxWrap{display:none}
 /* 詳情模式：卡片限高，條件列自己捲，不會超出畫面 */
@@ -360,7 +361,7 @@ body.film-narrow.film-detail-on #filmCond{overflow-y:auto;max-height:30vh}
 #filmMarkAuto:hover{color:#fff;border-color:#3a4657}
 #filmMarkAuto.manual{border-color:var(--amber);color:#ffd27a;background:rgba(255,179,71,.14)}
 #filmMarkAuto.ro{opacity:.62;cursor:not-allowed}
-/* ===== 編輯模式：擺位選項（改名／分類）與影像模擬提示文字（tip）可直接編輯 ===== */
+/* ===== 編輯哆啦呦噠模式：擺位選項（改名／分類）與影像模擬提示文字（tip）可直接編輯 ===== */
 .pitem .pedit,.pitem .pcatB{border:1px solid var(--line);background:#1b222c;color:#9fb3c8;
   border-radius:5px;font-family:inherit;font-size:0.5938rem;cursor:pointer;padding:0 6px;flex:none}
 .pitem .pedit:hover,.pitem .pcatB:hover{color:#fff;border-color:#3a4657}
@@ -369,7 +370,7 @@ body.film-narrow.film-detail-on #filmCond{overflow-y:auto;max-height:30vh}
 body.edit-on #filmTip{outline:1px dashed rgba(53,214,200,.45);outline-offset:-1px;cursor:text}
 body.edit-on #filmTip:empty{display:block;min-height:3.4em}
 body.edit-on #filmTip[data-ph]:empty:before{content:attr(data-ph);color:#4c5a6b}
-/* ===== 考生筆記（擺位模擬下方，考生可自己寫、自動儲存） ===== */
+/* ===== 考生哆啦呦噠筆記（擺位模擬下方，考生可自己寫、自動儲存） ===== */
 #filmNoteWrap{padding:6px 8px 8px;font-size:0.6562rem;line-height:1.6;
   background:rgba(26,21,12,.98);border:1px solid #4a3f22;border-top:0;
   max-height:26vh;overflow-y:auto}
@@ -699,7 +700,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 const $ = id => document.getElementById(id);
 const on = (id, ev, fn) => { const el = $(id); if (el) el.addEventListener(ev, fn); return el; };
 const press = (id, fn) => { const el = $(id); if (el) el.onclick = fn; return el; };
-/* 編輯模式：母機用 ?edit=1 開啟；考生端唯讀 */
+/* 編輯哆啦呦噠模式：母機用 ?edit=1 開啟；考生端唯讀 */
 let EDIT = new URLSearchParams(location.search).has('edit')
   || localStorage.getItem('posim.edit') === '1';
 const CLONE = o => JSON.parse(JSON.stringify(o));
@@ -736,7 +737,7 @@ const ANATOMICAL_POSE = {
 };
 const SCAP_LINK = 30, ULNA_LINK = 0.12, PAT_GLIDE = true;
 let DIGIT_REACH = 0.25;
-/* ---------- 場景尺寸（公尺） ---------- */
+/* ---------- 哆啦呦噠場景尺寸（公尺） ---------- */
 const BED_W = 0.78, BED_L = 2.10;
 const BED_TH = 0.050;
 let   BED_TOP = 0.760;
@@ -748,9 +749,9 @@ const BED_CZ = 0.30;
 const DECUB_BED_Z = 0.05 + BED_W/2;
 const SEAT_TOP = 0.45;
 const SIT_X = -(BED_W/2 + 0.30);
-const PORT_D = 0.062;                  /* 出口窗面距焦斑；前面再加 2 cm 護框，出口縮在機器內約 2 cm */
+const PORT_D = 0.062;                  /* 出口哆啦呦噠窗面距焦斑；前面再加 2 cm 護框，出口縮在機器內約 2 cm */
 function glassTop(){ return BED_TOP + GLASS_T; }
-/* ---------- 渲染器 ---------- */
+/* ---------- 哆啦呦噠渲染器 ---------- */
 const canvas = $('cv');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias:true, preserveDrawingBuffer:true });
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
@@ -830,7 +831,7 @@ function regionOf(n){
   if (/^(FEMUR|PATELLA|TIBIA|FIBULA)/.test(u) || FOOT_RE.test(u)) return 'leg';
   return 'pelvis';
 }
-/* ---------- 骨色 ---------- */
+/* ---------- 哆啦呦噠骨色 ---------- */
 const allMeshes = [], selected = new Set(), hiddenRegions = new Set(), boneColors = new Map();
 let baseColor = DEFAULT_BASE, hlColor = DEFAULT_HL, baseOpacity = 1, regionMode = false;
 function colorOf(m){
@@ -857,7 +858,7 @@ function applyAll(){
     styleMesh(m, selected.has(m.name) && m.visible);
   });
 }
-/* ---------- 幾何工具 ---------- */
+/* ---------- 幾何哆啦呦噠工具 ---------- */
 function bboxOf(m){ if (!m) return null; if (!m.geometry.boundingBox) m.geometry.computeBoundingBox(); return m.geometry.boundingBox; }
 function centerOf(m){ const b = bboxOf(m); return b ? b.getCenter(new THREE.Vector3()) : null; }
 function midlineX(){
@@ -962,7 +963,7 @@ function groupAxes(meshes){
   });
   return pcaAxes(pts);
 }
-/* ---------- 軸向 ---------- */
+/* ---------- 哆啦呦噠軸向 ---------- */
 function rotTest(u, axis, ang){ return u.clone().applyQuaternion(new THREE.Quaternion().setFromAxisAngle(axis,ang)); }
 function flexAxisToward(u, target){
   const U = u.clone().normalize();
@@ -985,7 +986,7 @@ function limbAxes(u, flexTarget, sideTarget){
   const s = sideAxisToward(U, f, sideTarget);
   return [f, U, s];
 }
-/* ---------- 骨架 ---------- */
+/* ---------- 哆啦呦噠骨架 ---------- */
 const JOINTS = new Map();
 const JOIN_ORDER = [];
 const AUX = { handAxes:{}, footAxes:{}, wristPivot:{}, anklePivot:{} };
@@ -1412,7 +1413,7 @@ function buildDigits(side, rootId, isFoot, hint, mid){
     list.forEach(m => hint.set(m, id));
   }
 }
-/* ---------- 姿勢引擎 ---------- */
+/* ---------- 姿勢哆啦呦噠引擎 ---------- */
 const pose = { a:{}, auto:{}, dist:{} };
 function manualAngle(id,i){ const a = pose.a[id]; return a ? (a[i]||0) : 0; }
 function angleOf(id,i){ const a = pose.a[id], b = pose.auto[id]; return (a?(a[i]||0):0) + (b?(b[i]||0):0); }
@@ -1483,7 +1484,7 @@ function applyPoseData(data, anim){
   applyPose();
   refreshPoseUI();
 }
-/* ---------- 姿勢切換動畫（骨頭從目前姿勢平滑移動到目標姿勢） ---------- */
+/* ---------- 姿勢哆啦呦噠切換動畫（骨頭從目前姿勢平滑移動到目標姿勢） ---------- */
 let poseAnim = null;
 function startPoseAnim(toAngles, dist){
   const from = {};
@@ -1520,7 +1521,7 @@ function tickPoseAnim(){
     poseAnim = null;
   }
 }
-/* 動畫期間：病人整體（yaw 旋轉、位置、站→躺翻轉）從起始狀態平滑插值到目標狀態 */
+/* 動畫期間：病人整體（yaw 哆啦呦噠旋轉、位置、站→躺翻轉）從起始狀態平滑插值到目標狀態 */
 function applyBodyAnim(e){
   placePatient();
   if (!poseAnim.bodyTo){
@@ -1533,7 +1534,7 @@ function applyBodyAnim(e){
   patientG.quaternion.copy(poseAnim.bodyFrom.quat).slerp(poseAnim.bodyTo.quat, e);
   patientG.updateMatrixWorld(true);
 }
-/* 各基礎姿勢的預設關節角度 */
+/* 各基礎姿勢的預設關哆啦呦噠節角度 */
 function basePoseFor(base){
   const p = CLONE(ANATOMICAL_POSE.a);
   if (base === 'sit'){
@@ -1571,7 +1572,7 @@ function applyMirrorFrom(id){
   const mir = mirrorAngles(id, pose.a[id] || [0,0,0]);
   if (mir) pose.a[toId] = mir;
 }
-/* ---------- 關節面板 ---------- */
+/* ---------- 關節哆啦呦噠面板 ---------- */
 const CTRL_GROUPS = [
   { zh:'骨盆・脊柱', ids:['root','lumbar','thoracic'] },
   { zh:'頭頸・下頷', ids:['cervical','head','jaw'] },
@@ -1755,7 +1756,7 @@ on('jointList', 'change', e => {
   for (let i=0;i<3;i++) if (tot[i]) setGroupAxis(c, i, tot[i]);
   applyPose(); refreshPoseUI(); applySetup(false);
 });
-/* 點骨頭 → 跳到該關節的卡片（僅練習模式） */
+/* 點骨頭 →哆啦呦噠 跳到該關節的卡片（僅練習模式） */
 function cardIdForJoint(jid){
   const s = String(jid || '');
   const m = s.match(/^([CTL])(\d+)$/);
@@ -1787,7 +1788,7 @@ function openJointCard(cid){
   card.scrollIntoView({ block:'center' });
   setTimeout(() => card.classList.remove('flash'), 1600);
 }
-/* ---------- 載入 ---------- */
+/* ---------- 載入哆啦呦噠 ---------- */
 const loader = new GLTFLoader();
 function fixFacing(){
   const stern = allMeshes.find(m => /^STERNUM/i.test(m.name));
@@ -2031,7 +2032,7 @@ on('op', 'input', e => {
   allMeshes.forEach(m => styleMesh(m, selected.has(m.name) && m.visible));
   savePrefs();
 });
-/* 實際可用畫面的寬高比：骨骼全覽在手機板要扣掉左側調整盤 */
+/* 實際可用畫面的寬高比：骨骼哆啦呦噠全覽在手機板要扣掉左側調整盤 */
 function availAspect(){
   const r = rectOf(stageEl);
   let w = (r.w > 2) ? r.w : innerWidth;
@@ -2043,7 +2044,7 @@ function availAspect(){
   }
   return Math.max(0.25, w / Math.max(1, h));
 }
-/* 剛好框住 box 的距離：垂直、水平各算一次，取遠的那個，再乘邊距 */
+/* 剛好框住 box 的距離：垂直、水平哆啦呦噠各算一次，取遠的那個，再乘邊距 */
 function fitDist(box, zoom, asp){
   const radius = Math.max(0.12, box.getSize(new THREE.Vector3()).length()*0.5);
   const vFov = D2R(camera.fov);
@@ -3522,7 +3523,7 @@ on('plist', 'click', e => {
     startRename(row ? row.dataset.id : '', row ? row.querySelector('.pmain') : null);
     return;
   }
-  /* 正在就地改名時，點名稱不要觸發載入（否則 DOM 被重建、輸入中斷） */
+  /* 正在就地改名時，哆啦呦噠點名稱不要觸發載入（否則 DOM 被重建、輸入中斷） */
   if (e.target.closest('.pmain[contenteditable="true"]')) return;
   const del = e.target.closest('.pdel');
   const row = e.target.closest('.pitem');
@@ -4582,7 +4583,7 @@ function filmCaptionCanvas(w){
   const dpr = renderer.getPixelRatio();
   const FONT = '-apple-system,"Segoe UI","Noto Sans TC","Microsoft JhengHei",sans-serif';
   const pad = Math.round(10*dpr), lh = Math.round(17*dpr), gap = Math.round(6*dpr);
-  /* 看影像時文字被 display:none，innerText 讀不到；暫時切到「詳情」讀完立刻還原 */
+  /* 看影哆啦呦噠像時文字被 display:none，innerText 讀不到；暫時切到「詳情」讀完立刻還原 */
   const _needShow = document.body.classList.contains('m-ui') ||
                     document.body.classList.contains('film-narrow');
   const _tmp = _needShow && !document.body.classList.contains('film-detail-on');
@@ -4843,7 +4844,7 @@ press('galRm', async function(){
 $('galView').addEventListener('click', function(e){
   if (e.target === this) this.classList.remove('on');   /* 點暗處等於返回 */
 });
-/* 圖庫彈出框可拖曳（也限制在畫面內） */
+/* 圖庫哆啦呦噠彈出框可拖曳（也限制在畫面內） */
 (function(){
   const win = $('galWin'), head = $('galHead');
   if (!win || !head) return;
@@ -4890,7 +4891,7 @@ press('shotGo', function(){
   galPut(both, base + '_both');
   toast('已存：擺位＋影像（已收進圖庫）');
 });
-/* --- 自訂擺位／覆蓋：桌機同步到神器資料夾的 擺位模擬/擺位.json --- */
+/* --- 自訂擺位哆啦呦噠／覆蓋：桌機同步到神器資料夾的 擺位模擬/擺位.json --- */
 async function persistPositions(){
   try{
     localStorage.setItem(LS_POS, JSON.stringify(CUSTOM));
@@ -4922,7 +4923,7 @@ async function syncFromServer(){
     renderList();
     refreshFilmNote();
   }
-  /* 舊圖遷移：瀏覽器裡既有的圖補進資料夾（只跑一次，同名跳過） */
+  /* 舊圖遷移哆啦呦噠：瀏覽器裡既有的圖補進資料夾（只跑一次，同名跳過） */
   let migrated = false;
   try{ migrated = localStorage.getItem('posim.migrated') === '1'; }catch(e){}
   if (!migrated){
@@ -5149,7 +5150,7 @@ try{
   if (e) e.innerHTML = '⚠ 初始化錯誤：<br>' + (err && err.message ? err.message : err);
   console.error(err);
 }
-/* ================= 開啟時尺寸先後不一的自動修正 =================
+/* ================= 哆啦呦噠開啟時尺寸先後不一的自動修正 =================
    情形：posSim 在神器裡是 iframe，可能先以較小的窄尺寸載入、之後才被放大，
    相機距離就停留在「給窄畫面用」的遠距離，模型看起來變小。
    作法：視窗（iframe）尺寸變化時，只要考生還沒手動動過相機就依目前視角重新框選；
