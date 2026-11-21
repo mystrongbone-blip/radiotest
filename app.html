@@ -626,6 +626,14 @@ body.phone #doc *{max-width:100%}
   body.fs-mode #fsQnavBtn{display:flex !important}
 }
 
+/* ═══ 全螢幕模式：隱藏所有工具列（任何裝置、任何方向） ═══ */
+body.fs-mode header,
+body.fs-mode #viewTop,
+body.fs-mode #libTools{display:none !important}
+body.fs-mode #docWrap,body.fs-mode #libScroll{height:100vh !important}
+body.fs-mode #floatFs{display:none !important}
+body.fs-mode #btnDocWidth{display:none !important}
+
 </style>
 </head>
 
@@ -10592,8 +10600,9 @@ async function paint(w){
   }
   /* 沒有筆記 → 保留目前顯示的原詳解當起點，同樣可編輯 */
   w.__showNotes=true;
-  body.setAttribute('contenteditable','true');
-  body.contentEditable='true';
+  /* 預設唯讀；點工具列 ✏️ 編輯才開放改字（與主閱讀頁一致，防手機誤觸） */
+  body.setAttribute('contenteditable','false');
+  body.contentEditable='false';
   /* 移除「原詳解／我的筆記」切換鈕 */
   w.querySelectorAll('.win-head button').forEach(function(b){
     if(/原詳解|我的筆記|看原詳解|看我的筆記/.test(b.textContent||''))b.remove();
