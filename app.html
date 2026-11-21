@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#14151b">
 <title>放射師國考神器</title>
 <link rel="manifest" href="manifest.json">
@@ -513,6 +513,36 @@ body{background:#14151b !important}
 /* ═══ 跳出框:內部容器允許橫捲,表格才不會撐破彈窗 ═══ */
 .win-body,.win-left,.win-right-body{overflow-x:auto}
 </style>
+
+
+/* ═══ iOS 文字自動放大根治（按鈕爆大的兇手）═══ */
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+/* ═══ 手機橫向：滿版、全折行、零滑動（取代上輪 overflow-x 單行版）═══ */
+@media (orientation:landscape){
+  body.phone header{padding:3px 10px;gap:5px;flex-wrap:wrap;max-width:100%;overflow:visible}
+  body.phone header h1{font-size:13px;flex:none}
+  body.phone header button{font-size:12px;padding:5px 9px;border-radius:8px;flex:none}
+  body.phone #crumb{max-width:30%;font-size:11px}
+  body.phone #viewTop,body.phone #libTools{padding:4px 8px;gap:4px;flex-wrap:wrap;max-width:100%;overflow:visible}
+  body.phone #viewTop button,body.phone #viewTop .tool,
+  body.phone #libTools button,body.phone #libTools .tool{flex:none;font-size:12px;padding:4px 8px}
+  body.phone #home{padding:12px 16px;max-width:100%;overflow-x:hidden}
+  body.phone #examBody,body.phone #libBody{padding:12px 16px;max-width:100%;overflow-x:hidden}
+  body.phone #docWrap{padding-left:10px;padding-right:10px}
+  body.phone #doc{font-size:16px;line-height:1.8}
+  body.phone #doc p,body.phone #doc .options{font-size:16px}
+  body.phone #doc h2{font-size:17px;margin:20px 0 8px}
+  body.phone #doc .solution,body.phone #doc .know,body.phone #doc .sim{font-size:15px;padding:10px}
+  body.phone .cards{grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
+  body.phone .rounds{grid-template-columns:repeat(auto-fill,minmax(90px,1fr))}
+  body.phone #floatFs{position:fixed;right:12px;bottom:16px;z-index:998;width:46px;height:46px;
+    border-radius:50%;background:rgba(79,140,255,.9);color:#fff;font-size:20px;border:none;
+    box-shadow:0 4px 12px rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center}
+}
+body.phone #fsBtnView,body.phone #fsBtnLib{display:inline-block !important}
+body.fs-mode.phone #fsQnavBtn{display:flex !important}
+body.fs-mode.phone #fsExit{display:block !important}
+
 </head>
 
 <body>
@@ -9180,8 +9210,8 @@ background:#0e1116;color:#8fa3ba;font-size:13px;transition:opacity .25s}
   const $ = id => document.getElementById(id);
 
   const IS_TOUCH = matchMedia('(pointer: coarse)').matches;
-  const isMobile = () => innerWidth < 768 || (IS_TOUCH && Math.min(innerWidth, innerHeight) < 500);
-
+  /* 手機判定改用螢幕「短邊」：直拿、橫拿都恆為手機（不會轉向時被當成桌機跑版） */
+  const isMobile = () => IS_TOUCH && Math.min(screen.width, screen.height) < 768;
   let els = null, hintT = null;
 
   /* 掛在 <html> 下：神器切頁清 body 時不會被清掉，模擬器常駐不重載、任何頁秒開 */
@@ -9250,6 +9280,14 @@ background:#0e1116;color:#8fa3ba;font-size:13px;transition:opacity .25s}
     e.load.classList.toggle('off', e.frame.dataset.ok === '1');
     e.float.classList.add('on');
     applyMobileRot();
+    /* 手機：盡力進入系統全螢幕（藏網址列，視窗尺寸不再亂跳；iOS 不支援則靜默略過） */
+    if (m){
+      try{
+        const fsEl = document.documentElement;
+        if (!document.fullscreenElement && fsEl.requestFullscreen)
+          fsEl.requestFullscreen().catch(function(){});
+      }catch(err){}
+    }
   }
   function closePosSim(){
     if (!els || !els.float) return;
@@ -9275,27 +9313,45 @@ background:#0e1116;color:#8fa3ba;font-size:13px;transition:opacity .25s}
   }
   function cur(){ const r = els.float.getBoundingClientRect(); return { x:r.left, y:r.top, w:r.width, h:r.height }; }
 
-  /* 手機直向：iframe 轉 90° */
+  /* 手機一律橫向全螢幕：直拿＝iframe 旋轉 90°（固定橫向視口）；橫拿＝原生橫向滿版 */
   function applyMobileRot(){
     if (!els || !els.float.classList.contains('on')) return;
-    const f = els.frame, need = isMobile() && innerHeight > innerWidth;
-    if (need){
+    if (!isMobile()) return;
+    const f = els.frame, portrait = innerHeight > innerWidth;
+    if (portrait && innerWidth > 40 && innerHeight > 40){
       f.classList.add('rot');
-      f.style.width  = els.body.clientHeight + 'px';
-      f.style.height = els.body.clientWidth + 'px';
-      f.style.left   = els.body.clientWidth + 'px';
+      f.style.width  = innerHeight + 'px';
+      f.style.height = innerWidth + 'px';
+      f.style.left   = innerWidth + 'px';
       f.style.top    = '0px';
     } else {
       f.classList.remove('rot');
       f.style.width = f.style.height = f.style.left = f.style.top = '';
     }
   }
-  addEventListener('resize', () => {
+  /* 尺寸變化：debounce＋「轉向」或「變化超過 40px」才重套，
+     網址列伸縮等微幅 resize 一律不理，畫面不會亂跳 */
+  let _rzT = null, _lastW = innerWidth, _lastH = innerHeight;
+  function onViewportChange(){
     if (!els || !els.float.classList.contains('on')) return;
+    const dw = Math.abs(innerWidth - _lastW), dh = Math.abs(innerHeight - _lastH);
+    const flipped = (innerWidth > innerHeight) !== (_lastW > _lastH);
+    if (!flipped && dw < 40 && dh < 40) return;
+    _lastW = innerWidth; _lastH = innerHeight;
     if (isMobile()){
       Object.assign(els.float.style, { left:'0px', top:'0px', width:innerWidth+'px', height:innerHeight+'px' });
     } else applyRect(cur());
     applyMobileRot();
+  }
+  function scheduleViewport(){
+    clearTimeout(_rzT);
+    _rzT = setTimeout(onViewportChange, 180);
+  }
+  addEventListener('resize', scheduleViewport);
+  addEventListener('orientationchange', function(){
+    /* 部分手機 resize 事件早於／晚於轉向完成：轉向後連補兩次 */
+    setTimeout(scheduleViewport, 60);
+    setTimeout(scheduleViewport, 400);
   });
 
   /* 拖移 */
@@ -11364,6 +11420,30 @@ console.log('[animDehydrate] v1 ready');
 })();
 </script>
 
+<script>
+/* ═══ 手機判定(直橫都算)：body.phone ＋ 旋轉時 viewport 重算 ═══ */
+(function(){
+  function isPhone(){
+    try{ return matchMedia('(pointer: coarse)').matches
+                && Math.min(screen.width, screen.height) < 768; }catch(e){ return false; }
+  }
+  function apply(){ document.body.classList.toggle('phone', isPhone()); }
+  addEventListener('resize', apply);
+  /* iOS 旋轉後縮放比例混亂：重寫一次 viewport meta 強制重算 */
+  addEventListener('orientationchange', function(){
+    setTimeout(function(){
+      apply();
+      var m = document.querySelector('meta[name="viewport"]');
+      if(m){
+        var c = m.getAttribute('content');
+        m.setAttribute('content', 'width=device-width,initial-scale=1');
+        setTimeout(function(){ m.setAttribute('content', c); }, 60);
+      }
+    }, 120);
+  });
+  apply();
+})();
+</script>
 
 </body>
 </html>
