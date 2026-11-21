@@ -389,19 +389,18 @@ body.m-ui:not(.film-detail-on):not(.film-pop) #filmNoteWrap,
 body.film-narrow:not(.m-ui):not(.film-detail-on):not(.film-pop) #filmNoteWrap,
 body.film-pop #filmNoteWrap{display:none}
 
-/* iOS 橫向鏡頭避讓：滿版背景不動，只讓開 UI 元素（跟神器同模式） */
+/* iOS 橫向鏡頭避讓：滿版背景＋UI 讓開（iframe 內文件自帶 viewport，env() 獨立生效） */
 @media (orientation:landscape){
-  #panel{padding-left:env(safe-area-inset-left,0px)}
-  #hud,#hint{padding-left:env(safe-area-inset-left,0px);
-    padding-right:env(safe-area-inset-right,0px)}
+  #panel{padding-left:calc(env(safe-area-inset-left,0px) + 10px)}
+  #simLeft{padding-left:calc(env(safe-area-inset-left,0px) + 10px)}
   #tabs{padding-left:calc(env(safe-area-inset-left,0px) * 0.5);
     padding-right:calc(env(safe-area-inset-right,0px) * 0.5)}
+  #hud,#hint{padding-left:calc(env(safe-area-inset-left,0px) * 0.6);
+    padding-right:calc(env(safe-area-inset-right,0px) * 0.6)}
   #filmWin{right:calc(env(safe-area-inset-right,0px) + 12px)}
-  #simLeft{padding-left:calc(env(safe-area-inset-left,0px) + 10px)}
   #simPan,#shotBar{padding-left:calc(env(safe-area-inset-left,0px) * 0.6);
     padding-right:calc(env(safe-area-inset-right,0px) * 0.6)}
 }
-
 
 </style>
 <style id="uiScaleStyle">html{font-size:clamp(16px, 10px + 0.5vw, 20px)}</style>
