@@ -506,7 +506,15 @@ body{background:#14151b !important}
 #lib{background:#14151b !important}
 #exam{background:#14151b !important}
 
+/* ═══ 長字斷行(僅詳解/試題庫;彈窗 td 由 tableCss 管) ═══ */
+#doc p:not(.trend-scope p):not(.qa-scope p),
+#doc li:not(.trend-scope li):not(.qa-scope li),
+.libq-body p,.libq-body li{overflow-wrap:anywhere;word-break:break-word}
+/* ═══ 跳出框:內部容器允許橫捲,表格才不會撐破彈窗 ═══ */
+.win-body,.win-left,.win-right-body{overflow-x:auto}
+</style>
 
+<style>
 /* ═══ iOS 文字自動放大根治（按鈕爆大的兇手）═══ */
 html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 /* ═══ 手機橫向：滿版、全折行、零滑動（取代上輪 overflow-x 單行版）═══ */
@@ -534,19 +542,7 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 body.phone #fsBtnView,body.phone #fsBtnLib{display:inline-block !important}
 body.fs-mode.phone #fsQnavBtn{display:flex !important}
 body.fs-mode.phone #fsExit{display:block !important}
-
-
-
-/* ═══ 長字斷行(僅詳解/試題庫;彈窗 td 由 tableCss 管) ═══ */
-#doc p:not(.trend-scope p):not(.qa-scope p),
-#doc li:not(.trend-scope li):not(.qa-scope li),
-.libq-body p,.libq-body li{overflow-wrap:anywhere;word-break:break-word}
-/* ═══ 跳出框:內部容器允許橫捲,表格才不會撐破彈窗 ═══ */
-.win-body,.win-left,.win-right-body{overflow-x:auto}
 </style>
-
-
-
 </head>
 
 <body>
