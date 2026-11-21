@@ -391,17 +391,16 @@ body.film-pop #filmNoteWrap{display:none}
 
 /* iOS 橫向鏡頭避讓：滿版背景不動，只讓開 UI 元素（跟神器同模式） */
 @media (orientation:landscape){
-  body.m-ui #panel{padding-left:env(safe-area-inset-left,0px)}
-  body.m-ui #hud,body.m-ui #hint{padding-left:env(safe-area-inset-left,0px);
+  #panel{padding-left:env(safe-area-inset-left,0px)}
+  #hud,#hint{padding-left:env(safe-area-inset-left,0px);
     padding-right:env(safe-area-inset-right,0px)}
-  body.m-ui #tabs{padding-left:calc(env(safe-area-inset-left,0px) * 0.5);
+  #tabs{padding-left:calc(env(safe-area-inset-left,0px) * 0.5);
     padding-right:calc(env(safe-area-inset-right,0px) * 0.5)}
-  body.m-ui #filmWin{right:calc(env(safe-area-inset-right,0px) + 12px)}
-  body.m-ui #simLeft{padding-left:calc(env(safe-area-inset-left,0px) + 10px)}
-  body.m-ui #simPan,body.m-ui #shotBar{padding-left:calc(env(safe-area-inset-left,0px) * 0.6);
+  #filmWin{right:calc(env(safe-area-inset-right,0px) + 12px)}
+  #simLeft{padding-left:calc(env(safe-area-inset-left,0px) + 10px)}
+  #simPan,#shotBar{padding-left:calc(env(safe-area-inset-left,0px) * 0.6);
     padding-right:calc(env(safe-area-inset-right,0px) * 0.6)}
 }
-
 
 
 </style>
