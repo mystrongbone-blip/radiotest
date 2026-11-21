@@ -3,7 +3,7 @@
 <head>
 <link rel="icon" type="image/png" href="data/bone_512.png">
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>放射擺位模擬 v6.7</title>
 <style>
 :root{--bg:#0e1116;--panel:#151a21;--line:#242c38;--txt:#e8edf4;--muted:#8b9bb0;
@@ -389,6 +389,15 @@ body.edit-on #filmTip[data-ph]:empty:before{content:attr(data-ph);color:#4c5a6b}
 body.m-ui:not(.film-detail-on):not(.film-pop) #filmNoteWrap,
 body.film-narrow:not(.m-ui):not(.film-detail-on):not(.film-pop) #filmNoteWrap,
 body.film-pop #filmNoteWrap{display:none}
+
+/* posSim：iOS 橫向鏡頭避讓（左右橫放都正確） */
+@media (orientation:landscape){
+  body.m-ui #panel{padding-left:env(safe-area-inset-left,0px);
+    padding-right:env(safe-area-inset-right,0px)}
+  body.m-ui #filmWin{right:calc(max(env(safe-area-inset-left,0px),env(safe-area-inset-right,0px)) + 12px)}
+  body.m-ui #hud,body.m-ui #hint{padding-left:env(safe-area-inset-left,0px);
+    padding-right:env(safe-area-inset-right,0px)}
+}
 </style>
 <style id="uiScaleStyle">html{font-size:clamp(16px, 10px + 0.5vw, 20px)}</style>
 <script>try{var fsq=new URLSearchParams(location.search).get("fs");if(fsq)document.documentElement.style.fontSize=parseFloat(fsq)+"px";}catch(e){}</script>

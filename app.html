@@ -551,6 +551,33 @@ body.phone .cards,body.phone .rounds{max-width:100%}
 body.phone #doc,body.phone #docWrap,body.phone .libq-body{max-width:100%;overflow-x:hidden}
 body.phone #doc *{max-width:100%}
 
+/* ═══ iPhone 動態島避讓：左右橫放都正確（雙側對稱） ═══ */
+@media (orientation:landscape){
+  body.phone header{padding-left:calc(env(safe-area-inset-left,0px) + 10px);
+    padding-right:calc(env(safe-area-inset-right,0px) + 10px)}
+  body.phone #viewTop,body.phone #libTools{padding-left:calc(env(safe-area-inset-left,0px) + 8px);
+    padding-right:calc(env(safe-area-inset-right,0px) + 8px)}
+  body.phone #home,body.phone #docWrap{padding-left:calc(env(safe-area-inset-left,0px) + 10px);
+    padding-right:calc(env(safe-area-inset-right,0px) + 10px)}
+  body.phone #examBody,body.phone #libBody{padding-left:calc(env(safe-area-inset-left,0px) + 10px);
+    padding-right:calc(env(safe-area-inset-right,0px) + 10px)}
+  body.fs-mode.phone #docWrap{padding-left:env(safe-area-inset-left,0px);
+    padding-right:env(safe-area-inset-right,0px)}
+  body.fs-mode.phone #docWrap{padding-bottom:env(safe-area-inset-bottom,0px)}
+  body.fs-mode.phone #fsExit{bottom:calc(env(safe-area-inset-bottom,0px) + 14px);
+    right:calc(max(env(safe-area-inset-left,0px),env(safe-area-inset-right,0px)) + 10px)}
+  body.fs-mode.phone #fsQnavBtn{left:calc(max(env(safe-area-inset-left,0px),env(safe-area-inset-right,0px)) + 12px)}
+  body.fs-mode.phone #doc{padding-left:calc(env(safe-area-inset-left,0px) + 10px);
+    padding-right:calc(env(safe-area-inset-right,0px) + 10px)}
+  body.phone #posSimFloat{padding-left:env(safe-area-inset-left,0px);
+    padding-right:env(safe-area-inset-right,0px);box-sizing:border-box}
+}
+
+/* ═══ 擺位模擬（手機滿版浮動框）：橫向避開鏡頭，iframe 右側自動內縮 ═══ */
+@media (orientation:landscape){
+  body.phone #posSimFloat{padding-left:env(safe-area-inset-left,0px);
+    box-sizing:border-box}
+}
 
 </style>
 </head>
