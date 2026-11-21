@@ -533,7 +533,8 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
   body.phone #doc p,body.phone #doc .options{font-size:16px}
   body.phone #doc h2{font-size:17px;margin:20px 0 8px}
   body.phone #doc .solution,body.phone #doc .know,body.phone #doc .sim{font-size:15px;padding:10px}
-  body.phone .cards{grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
+  body.phone .cards{grid-template-columns:repeat(3,minmax(0,1fr))}
+  body.phone .cards .scard{max-width:100%;min-width:0}
   body.phone .rounds{grid-template-columns:repeat(auto-fill,minmax(90px,1fr))}
   body.phone #floatFs{position:fixed;right:12px;bottom:16px;z-index:998;width:46px;height:46px;
     border-radius:50%;background:rgba(79,140,255,.9);color:#fff;font-size:20px;border:none;
@@ -542,6 +543,15 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 body.phone #fsBtnView,body.phone #fsBtnLib{display:inline-block !important}
 body.fs-mode.phone #fsQnavBtn{display:flex !important}
 body.fs-mode.phone #fsExit{display:block !important}
+
+/* ═══ 橫向溢出根治：整頁不准有任何東西撐出螢幕 ═══ */
+body.phone, body.phone html{overflow-x:hidden;max-width:100vw}
+body.phone #home,body.phone #view,body.phone #lib,body.phone #exam{max-width:100vw;overflow-x:hidden}
+body.phone .cards,body.phone .rounds{max-width:100%}
+body.phone #doc,body.phone #docWrap,body.phone .libq-body{max-width:100%;overflow-x:hidden}
+body.phone #doc *{max-width:100%}
+
+
 </style>
 </head>
 
