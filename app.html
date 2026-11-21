@@ -613,6 +613,19 @@ body.phone #doc *{max-width:100%}
   #posSimBar{padding-left:calc(env(safe-area-inset-left,0px) + 10px)}
 }
 
+/* ═══ 手機橫放：全螢幕鈕補全（#floatFs 蓋過 min-width:768 的 display:none） ═══ */
+@media (orientation:landscape){
+  html body.phone #floatFs{position:fixed;right:12px;bottom:16px;z-index:998;width:46px;height:46px;
+    border-radius:50%;background:rgba(79,140,255,.9);color:#fff;font-size:20px;border:none;
+    box-shadow:0 4px 12px rgba(0,0,0,.4);display:flex !important;align-items:center;justify-content:center}
+  html body.phone #fsBtnView,html body.phone #fsBtnLib{display:inline-block !important}
+}
+/* 全螢幕中也要能退出（橫放） */
+@media (orientation:landscape){
+  html body.fs-mode.phone #fsExit{display:flex !important;position:fixed;right:12px;bottom:16px;
+    z-index:9999;background:rgba(31,41,55,.82);color:#fff;border:1px solid rgba(255,255,255,.25);
+    border-radius:99px;padding:10px 16px;font-size:14px;box-shadow:0 6px 18px rgba(0,0,0,.4)}
+  html body.fs-mode.phone #fsQnavBtn{display:flex !important}
 }
 
 </style>
