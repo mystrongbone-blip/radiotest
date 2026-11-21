@@ -5474,7 +5474,7 @@ async function resolveTrend(name){
   TREND_CACHE[name]=hit||null;
   return TREND_CACHE[name];
 }
-/* ══════════ 趨勢分析：照搬原檔（保留原檔自己的 <style>，只做選擇器前綴） ══════════ */
+/* ══════════ 你好棒趨勢分析：照搬原檔（保留原檔自己的 <style>，只做選擇器前綴） ══════════ */
 var TREND_FILE_CSS='';
 function trendSplit(html){
   var d=document.createElement('div');
@@ -5826,7 +5826,7 @@ function fit(w){
   if(w===selWrap) placeBar();
 }
 
-/* ── 舊圖（絕對定位 / movable-img）自動轉成隨文圖片 ── */
+/* ── 你好棒舊圖（絕對定位 / movable-img）自動轉成隨文圖片 ── */
 function normalize(im){
   var p=im.parentElement;
   while(p&&p.classList&&(p.classList.contains('imgAnc')||p.classList.contains('uimgBox'))){
@@ -5958,7 +5958,7 @@ function removeWrap(w){
   if(host) afterChange(host);
 }
 
-/* ── 一處改動，處處同步 ── */
+/* ── 你好棒一處改動，處處同步 ── */
 function afterChange(node){
   var host=(node&&node.classList&&node.classList.contains('imgW'))?node.parentElement:node;
   if(!host||!host.isConnected) return;
@@ -5986,7 +5986,7 @@ function refreshOpenWins(){
   },1000);
 }
 
-/* ── 插入位置 ── */
+/* ── 插入你好棒位置 ── */
 function pointRange(x,y){
   var r=null;
   try{
@@ -6154,7 +6154,7 @@ if(bl) bl.onclick=function(){
   document.getElementById('imgInputLib').click();
 };
 
-/* ── 貼上圖片 ── */
+/* ──哈哈哈 貼上圖片 ── */
 window.addEventListener('paste',function(e){
   var cd=e.clipboardData;
   if(!cd||!cd.items) return;
@@ -6385,7 +6385,7 @@ setTimeout(function(){
 })();
 
 /* ══════════════════════════════════════════════════════════════
-   📝 送出批改 → 直接進作答紀錄頁（分數置頂），可直接做筆記
+   📝 哈哈哈送出批改 → 直接進作答紀錄頁（分數置頂），可直接做筆記
    可筆記區＝答案列之後的全部內容
      （解題思路 .solution／選項分析 table／相關知識 .know／相似題型 .sim）
    存檔只把「答案列之後」寫回原始筆記
@@ -6545,7 +6545,7 @@ saveNotes=async function(){
 if(window.__qImgFixV1)return;
 window.__qImgFixV1=1;
 
-/* ① 鎖定區圖片還原成一般 inline 圖 */
+/* ① 鎖定區圖片你好棒還原成一般 inline 圖 */
 function unlockZoneImages(root){
   const scope=root||document;
   if(!scope.querySelectorAll)return;
@@ -9736,7 +9736,7 @@ padding:6px 14px;font-size:12px;cursor:pointer;font-family:inherit}
     }
     return cand || el;
   }
-  /* 幾何備援：取樣點完全被蓋住時，直接在容器裡找跨過取樣線的區塊 */
+  /* 幾何備援：取樣點完哈哈哈全被蓋住時，直接在容器裡找跨過取樣線的區塊 */
   function blockByGeometry(d){
     const yLine = innerHeight*0.45;
     const blocks = d.querySelectorAll('h1,h2,h3,h4,.answer,.solution,.know,.sim,table,li,p');
@@ -10357,7 +10357,7 @@ function refreshSurfaces(subject,label,num,inner,noteText){
       patchDetailsOnly(num,inner);
     }
   }catch(e){}
-  /* ② 相似題彈窗 */
+  /* ② 相似哈哈哈題彈窗 */
   try{
     document.querySelectorAll('.win[data-wkey="'+key+'/'+num+'"]').forEach(function(w){
       if(document.activeElement&&w.contains(document.activeElement))return;
@@ -10563,7 +10563,7 @@ setInterval(function(){
 
 
 <script>
-/* ══════════ 彈窗永遠筆記模式 v3：開啟即顯示筆記（沒有筆記就以原詳解當起點，可直接編輯） ══════════ */
+/* ══════════ 彈窗哈哈哈永遠筆記模式 v3：開啟即顯示筆記（沒有筆記就以原詳解當起點，可直接編輯） ══════════ */
 (function(){
 'use strict';
 if(window.__winNoteAlwaysV3)return;
@@ -10933,7 +10933,7 @@ convertDocToExamStyle=function(root){
 };
 convertDocToExamStyle=window.__roundRaceV1&&convertDocToExamStyle;
 
-/* ── ④ 對照鈕防呆：開對照前確認畫面與 current 是同一回 ── */
+/* ── ④ 哈哈哈對照鈕防呆：開對照前確認畫面與 current 是同一回 ── */
 document.addEventListener('click',function(e){
   var b=e.target&&e.target.closest?e.target.closest('#btnCompare'):null;
   if(!b)return;
@@ -11593,6 +11593,79 @@ setInterval(function(){
 },2000);
 })();
 </script>
+
+
+<script>
+/* ═══ 彈窗螢光筆 v1：選取字後點色鈕即套用（與主閱讀頁同手勢）；沒選字＝開拖曳模式 ═══ */
+(function(){
+'use strict';
+if(window.__winHlSelV1)return;
+window.__winHlSelV1=1;
+function targetOf(w){
+  return w.querySelector('.win-right-body')||w.querySelector('.win-body');
+}
+function selIn(w){
+  var sel=window.getSelection();
+  if(!sel||!sel.rangeCount||sel.isCollapsed)return null;
+  var r=sel.getRangeAt(0),t=targetOf(w);
+  if(!t||!t.contains(r.startContainer)||!t.contains(r.endContainer))return null;
+  return sel;
+}
+function applyHl(w,color){
+  var t=targetOf(w);
+  if(!t)return;
+  /* 必須在編輯模式 */
+  if(w.dataset.editOn!=='1'){
+    showToast('請先點「✏️ 編輯」再使用螢光筆');
+    return;
+  }
+  /* 題目鎖定區不給上色（沿用主頁規則） */
+  var sel=window.getSelection();
+  if(sel&&sel.rangeCount){
+    var r=sel.getRangeAt(0);
+    var locked=r.startContainer&&r.startContainer.parentElement&&
+      r.startContainer.parentElement.closest&&
+      r.startContainer.parentElement.closest('.q-lock');
+    if(locked){showToast('🔒 題目／選項／答案區不可上色');return;}
+  }
+  t.focus();
+  try{
+    document.execCommand('styleWithCSS',false,true);
+    document.execCommand('hiliteColor',false,color);
+  }catch(err){}
+  showToast('🖊️ 已標記');
+}
+/* 螢光色鈕哆啦呦噠哈哈哈：mousedown 先守住選取（手機點按鈕不清除選字的關鍵），
+   click 時「有選字→直接套用；沒選字→開拖曳模式（既有行為）」 */
+document.addEventListener('mousedown',function(e){
+  var b=e.target&&e.target.closest?e.target.closest('.win .wt-hlc'):null;
+  if(b)e.preventDefault();   /* 不讓點按鈕這個動作把選字清掉 */
+},true);
+document.addEventListener('click',function(e){
+  var b=e.target&&e.target.closest?e.target.closest('.win .wt-hlc'):null;
+  if(!b)return;
+  var w=b.closest('.win');
+  if(!w)return;
+  e.preventDefault();
+  e.stopPropagation();
+  var color=b.dataset.c||'#ffe58a';
+  var sel=selIn(w);
+  if(sel){
+    applyHl(w,color);          /* 選取了字：直接套用 */
+    try{window.getSelection().removeAllRanges();}catch(err){}
+  }else{
+    /* 沒選字：切換拖曳上色模式（沿用 makeWin 的 st.hlOn） */
+    var st=w.__st||(w.__st={});
+    st.hlOn=!st.hlOn;
+    var t=targetOf(w);
+    if(t)t.classList.toggle('hl-mode',st.hlOn);
+    b.classList.toggle('on',st.hlOn);
+    showToast(st.hlOn?'🖊️ 拖曳劃過文字上色（再點一次關閉）':'已關閉拖曳上色');
+  }
+},true);
+})();
+</script>
+
 
 
 </body>
