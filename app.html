@@ -11550,5 +11550,57 @@ console.log('[animDehydrate] v1 ready');
   });
 </script>
 
+<script>
+/* ═══ 彈窗編輯切換 v2：✏️ 切換容器 contenteditable；qLock 照常保護題目區 ═══
+   行為與主閱讀頁一致：解析區（.solution/.know/.sim）可改；題目/選項/答案恆鎖。
+   開啟彈窗＝唯讀；點 ✏️ 編輯 → 可做筆記；再點 → 回唯讀。 */
+(function(){
+'use strict';
+if(window.__winEditToggleV2)return;
+window.__winEditToggleV2=1;
+function targetOf(w){
+  return w.querySelector('.win-right-body')||w.querySelector('.win-body');
+}
+function setEdit(w,on){
+  var t=targetOf(w);
+  if(!t)return;
+  t.setAttribute('contenteditable',on?'true':'false');
+  t.contentEditable=on?'true':'false';
+  var b=w.querySelector('.wt-edit');
+  if(b)b.classList.toggle('on',on);
+}
+/* 攔截 ✏️：統一切換（蓋過 makeWin 內建的 st.editOn 邏輯，兩邊狀態同步） */
+document.addEventListener('click',function(e){
+  var b=e.target&&e.target.closest?e.target.closest('.win .wt-edit'):null;
+  if(!b)return;
+  var w=b.closest('.win');
+  if(!w)return;
+  e.preventDefault();
+  e.stopPropagation();
+  var t=targetOf(w);
+  if(!t)return;
+  var on=t.getAttribute('contenteditable')!=='true';
+  setEdit(w,on);
+  if(on){
+    t.focus();
+    showToast('✏️ 編輯模式：解析區可做筆記；題目／選項／答案不可修改');
+  }else{
+    showToast('已離開編輯');
+  }
+},true);
+/* 保險：任何時刻彈窗內容若被重繪（__reloadNotes 等），維持「唯讀＋按鈕狀態」一致 */
+setInterval(function(){
+  document.querySelectorAll('.win[data-wkey]').forEach(function(w){
+    var t=targetOf(w);
+    if(!t)return;
+    var on=t.getAttribute('contenteditable')==='true';
+    var b=w.querySelector('.wt-edit');
+    if(b)b.classList.toggle('on',on);
+  });
+},2000);
+})();
+</script>
+
+
 </body>
 </html>
