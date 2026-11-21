@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#14151b">
 <title>放射師國考神器</title>
 <link rel="manifest" href="manifest.json">
@@ -571,6 +571,13 @@ body.phone #doc *{max-width:100%}
     padding-right:calc(env(safe-area-inset-right,0px) + 10px)}
   body.phone #posSimFloat{padding-left:env(safe-area-inset-left,0px);
     padding-right:env(safe-area-inset-right,0px);box-sizing:border-box}
+  /* ═══ 橫向內容鎖比例：內容永遠＝可視寬度，兩側只留 safe-area ═══ */
+  body.phone #home,body.phone #view,body.phone #lib,body.phone #exam{
+    width:100%;max-width:100vw}
+  body.phone .cards{width:100%;max-width:100%}
+  body.phone #doc{width:100%;max-width:100%;box-sizing:border-box}
+  body.phone #docWrap{width:100%;max-width:100vw;box-sizing:border-box}
+  body.phone #posSimFloat{width:100vw !important;height:100vh !important;left:0 !important;top:0 !important}
 }
 
 /* ═══ 擺位模擬（手機滿版浮動框）：橫向避開鏡頭，iframe 右側自動內縮 ═══ */
@@ -11466,17 +11473,30 @@ console.log('[animDehydrate] v1 ready');
   }
   function apply(){ document.body.classList.toggle('phone', isPhone()); }
   addEventListener('resize', apply);
-  /* iOS 旋轉後縮放比例混亂：重寫一次 viewport meta 強制重算 */
+  /* 旋轉時：重寫 viewport meta 強制 iOS 重算 + 歸位捲動 + 重算全屏元素寬度 */
   addEventListener('orientationchange', function(){
     setTimeout(function(){
       apply();
       var m = document.querySelector('meta[name="viewport"]');
       if(m){
         var c = m.getAttribute('content');
-        m.setAttribute('content', 'width=device-width,initial-scale=1');
-        setTimeout(function(){ m.setAttribute('content', c); }, 60);
+        m.setAttribute('content','width=device-width,initial-scale=1,maximum-scale=1');
+        setTimeout(function(){ m.setAttribute('content', c); }, 80);
       }
-    }, 120);
+      window.scrollTo(0,0);
+      /* 重算所有 inline width 寫死的全屏元素（posSim 浮動框、金鑰鎖等） */
+      ['posSimFloat','keyLock'].forEach(function(id){
+        var el = document.getElementById(id);
+        if(el && el.style.width){
+          el.style.width = innerWidth + 'px';
+          el.style.height = innerHeight + 'px';
+          el.style.left = '0px'; el.style.top = '0px';
+        }
+      });
+      /* posSim 直拿旋轉 iframe 的尺寸也重套（若函式存在） */
+      if(typeof applyMobileRot === 'function') applyMobileRot();
+    }, 150);
+    setTimeout(function(){ window.scrollTo(0,0); }, 450);
   });
   apply();
 })();
