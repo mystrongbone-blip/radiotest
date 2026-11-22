@@ -1864,7 +1864,10 @@ function ingest(gltfScene){
   const H = bb.isEmpty() ? BODY_H : Math.max(0.1, bb.max.y-bb.min.y);
   DIGIT_REACH = H*0.135;
   buildRig();
-  applyPoseData(ANATOMICAL_POSE);
+  /* 開場已載入某個擺位（init 的 loadItem）時，模型載完不要蓋回解剖姿勢，
+     否則打開就變預設站姿、要再點一次清單才會擺好。沒有載入任何擺位才用解剖姿勢。 */
+  if (curId && findPos(curId)) applyPose();
+  else applyPoseData(ANATOMICAL_POSE);
   buildChips(); buildList(); buildPoseUI(); applyAll();
   const ri = $('rigInfo');
   if (ri) ri.textContent = `${JOINTS.size} 關節 / ${allMeshes.length} 骨頭`;

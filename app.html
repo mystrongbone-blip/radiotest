@@ -658,6 +658,11 @@ body.fs-mode #btnDocWidth{display:none !important}
   <div class="cards" id="cards"></div>
   <button id="navBackupActions" class="tool" style="display:block;margin:18px auto 0;font-size:15px;padding:10px 0;width:260px;text-align:center;font-weight:700;background:#0e9f6e;border-color:#0e9f6e;color:#fff;border-radius:10px;box-shadow:0 4px 12px rgba(14,159,110,.35)">💾 備份說明</button>
   <button id="btnHelp" class="tool" style="display:block;margin:10px auto 0;font-size:15px;padding:10px 0;width:260px;text-align:center;font-weight:700;background:#4f8cff;border-color:#4f8cff;color:#fff;border-radius:10px;box-shadow:0 4px 12px rgba(79,140,255,.35)">📖 功能介紹</button>
+  <button id="btnFeedback" class="tool" style="display:block;margin:10px auto 0;font-size:15px;padding:10px 0;width:260px;text-align:center;font-weight:700;background:#f59e0b;border-color:#f59e0b;color:#111827;border-radius:10px;box-shadow:0 4px 12px rgba(245,158,11,.35)" onclick="window.open('https://forms.gle/QfkEr6xvBvWeYUuF6','_blank')">❤️ 意見回饋</button>
+  <button id="btnBugReport" class="tool" style="display:block;margin:10px auto 0;font-size:15px;padding:10px 0;width:260px;text-align:center;font-weight:700;background:#3a4048;border-color:#3a4048;color:#fff;border-radius:10px;box-shadow:0 4px 12px rgba(0,0,0,.35)" onclick="window.open('https://forms.gle/8zStdoevkFtCdtBi6','_blank')">🔧 問題回報</button>
+
+
+
   <div id="socialLinks" style="display:flex;justify-content:center;align-items:center;gap:16px;margin-top:12px">
     <a href="https://www.youtube.com/channel/UCht6WpsUKjZOfIjfhnbOz2w" target="_blank" rel="noopener"
        style="display:block;width:72px;height:72px;border-radius:16px;background:#cc0000;box-shadow:0 4px 12px rgba(0,0,0,.4);transition:transform .15s">
@@ -1585,6 +1590,8 @@ function showRounds(s){
   $('cards').style.display='none';
   $('btnHelp').style.display='none';
   $('navBackupActions').style.display='none';
+  $('btnFeedback').style.display='none';
+  $('btnBugReport').style.display='none';
   $('socialLinks').style.display='none';
   const old=document.getElementById('btnBackCards');
   if(old)old.remove();
@@ -1661,10 +1668,12 @@ function goHome(){
   crumb.textContent='';
   $('btnHelp').style.display='block';
   $('navBackupActions').style.display='block';
+  $('btnFeedback').style.display='block';
+  $('btnBugReport').style.display='block';
   $('socialLinks').style.display='flex';
   const bc=document.getElementById('btnBackCards');
   if(bc)bc.remove();
-  if(wasTrend)renderHome();
+   renderHome();
 }
 function convertDocToExamStyle(root){
   const scope=root||docEl;
@@ -5675,6 +5684,8 @@ async function openTrendHome(){
   crumb.textContent='📈 考題趨勢';
   $('btnHelp').style.display='none';
   $('navBackupActions').style.display='none';
+  $('btnFeedback').style.display='none';
+  $('btnBugReport').style.display='none';
   $('socialLinks').style.display='none';
   const bc=document.getElementById('btnBackCards');
   if(bc)bc.remove();
