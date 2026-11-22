@@ -1497,6 +1497,18 @@ function applyPoseData(data, anim){
   applyPose();
   refreshPoseUI();
 }
+
+
+/* 骨骼全覽固定顯示解剖姿勢：暫時套用後立刻還原 pose.a。
+   pose.a 永遠代表「擺位模式」的姿勢，不會被骨骼全覽覆蓋。 */
+function applyAnatomicalPose(){
+  const keep = pose.a;
+  pose.a = CLONE(ANATOMICAL_POSE.a);
+  applyPose();
+  pose.a = keep;
+}
+
+
 /* ---------- 姿勢切換動畫（骨頭從目前姿勢平滑移動到目標姿勢） ---------- */
 let poseAnim = null;
 function startPoseAnim(toAngles, dist){
@@ -1864,10 +1876,8 @@ function ingest(gltfScene){
   const H = bb.isEmpty() ? BODY_H : Math.max(0.1, bb.max.y-bb.min.y);
   DIGIT_REACH = H*0.135;
   buildRig();
-  /* 開場已載入某個擺位（init 的 loadItem）時，模型載完不要蓋回解剖姿勢，
-     否則打開就變預設站姿、要再點一次清單才會擺好。沒有載入任何擺位才用解剖姿勢。 */
-  if (curId && findPos(curId)) applyPose();
-  else applyPoseData(ANATOMICAL_POSE);
+  if (MODE === 'sim') applyPose();     /* 擺位模式：模型載完直接套目前擺位姿勢 */
+  else applyAnatomicalPose();          /* 骨骼全覽：固定解剖姿勢（pose.a 仍保留擺位姿勢） */
   buildChips(); buildList(); buildPoseUI(); applyAll();
   const ri = $('rigInfo');
   if (ri) ri.textContent = `${JOINTS.size} 關節 / ${allMeshes.length} 骨頭`;
@@ -3582,6 +3592,7 @@ function loadItem(it){
   const dist = merged.__dist || {};
   delete merged.__dist;
   applyPoseData({ a:merged, dist }, MODE === 'sim');
+  if (MODE !== 'sim') applyAnatomicalPose();   /* 骨骼全覽時畫面維持解剖，擺位姿勢只更新到 pose.a */
   curId = it.id;
   renderList(); renderAutoHits(); syncUI(); syncModeUI();
   applyTipEdit();
@@ -5088,7 +5099,7 @@ function setMode(m){
     patientG.position.set(0,0,0);
     patientG.quaternion.identity();
     selected.clear(); applyAll();
-    applyPoseData(ANATOMICAL_POSE);
+    applyAnatomicalPose();   /* 骨骼全覽固定解剖姿勢，且不覆蓋 pose.a（擺位姿勢） */
     camera.aspect = innerWidth / Math.max(1, innerHeight);
     camera.updateProjectionMatrix();
     frameAll();
