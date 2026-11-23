@@ -389,6 +389,24 @@ body.m-ui:not(.film-detail-on):not(.film-pop) #filmNoteWrap,
 body.film-narrow:not(.m-ui):not(.film-detail-on):not(.film-pop) #filmNoteWrap,
 body.film-pop #filmNoteWrap{display:none}
 
+/* ===== 桌機右欄：影像大小不變，下方文字框各自內部捲動（滾輪可看完整內容） ===== */
+body.mode-sim:not(.film-pop):not(.m-ui):not(.film-narrow) #filmWin{
+  max-height:calc(100% - 74px);   /* top:62 ＋ 底部留 12px，整張卡收進畫面 */
+}
+body.mode-sim:not(.film-pop):not(.m-ui):not(.film-narrow) #filmHead,
+body.mode-sim:not(.film-pop):not(.m-ui):not(.film-narrow) #filmBoxWrap{flex:none}
+body.mode-sim:not(.film-pop):not(.m-ui):not(.film-narrow) #filmCond,
+body.mode-sim:not(.film-pop):not(.m-ui):not(.film-narrow) #filmTip,
+body.mode-sim:not(.film-pop):not(.m-ui):not(.film-narrow) #filmNoteWrap{
+  min-height:0;flex:0 1 auto;overflow-y:auto;
+}
+#radBox .in{max-height:24vh;overflow-y:auto}
+#filmCond::-webkit-scrollbar,#filmTip::-webkit-scrollbar,
+#filmNoteWrap::-webkit-scrollbar{width:6px}
+#filmCond::-webkit-scrollbar-thumb,#filmTip::-webkit-scrollbar-thumb,
+#filmNoteWrap::-webkit-scrollbar-thumb{background:#2b3543;border-radius:3px}
+
+
 /* iOS 橫向鏡頭避讓：滿版背景＋UI 讓開（iframe 內文件自帶 viewport，env() 獨立生效） */
 @media (orientation:landscape){
   #panel{padding-left:calc(env(safe-area-inset-left,0px) + 10px)}
@@ -3171,7 +3189,6 @@ function syncCond(){
     cl.style.height = (sim.fh/43*100)+'%';
   }
   autoFit();
-  filmShrinkFit();
 }
 function orientBeam(obj, dir){
   const z = dir.clone().normalize();
@@ -4290,7 +4307,7 @@ function setSteppers(narrow){
     if (box) box.style.display = narrow ? 'flex' : 'none';
   });
 }
-setInterval(function(){ autoFit(); fitFilm(); filmShrinkFit(); setSteppers(innerWidth < 820); }, 450);
+setInterval(function(){ autoFit(); fitFilm(); setSteppers(innerWidth < 820); }, 450);
 /* ================= 影像模擬視窗：固定右欄 ＋ 點擊彈出（只彈影像、大小固定） ================= */
 function filmPopSize(){
   /* 彈出大小：手機／窄畫面幾乎滿版，桌機固定為視窗寬 62%、高 78%、上限 860 三者最小 */
@@ -4306,47 +4323,6 @@ function filmDockW(){
     return Math.round(Math.max(200, Math.min(innerWidth - 24, innerWidth * 0.86, 560)));
   return Math.round(innerWidth * (narrow ? 0.32 : 0.25));
 }
-
-
-/* 桌機右欄影像卡：畫面高度裝不下「影像＋條件＋提示」時，自動內縮影像寬度，
-   讓整張卡片收在畫面內（右下角不再被裁掉）。影像縮到下限仍不夠時，
-   改限縮提示／筆記高度（各自內部捲動）。手機版面與彈出檢視不適用。 */
-function filmShrinkFit(){
-  const win = $('filmWin'); if (!win) return;
-  const b = document.body;
-  if (b.classList.contains('film-pop') ||
-      b.classList.contains('m-ui') || b.classList.contains('film-narrow')) return;
-  if (getComputedStyle(win).display === 'none') return;
-  const avail = innerHeight - 62 - 12;             /* top:62 ＋ 底部留 12px */
-  if (avail < 240) return;
-  const tip = $('filmTip'), note = $('filmNoteWrap');
-  if (tip) tip.style.maxHeight = '';               /* 先解除上次的限縮再重新評估 */
-  if (note) note.style.maxHeight = '';
-  win.style.width = filmDockW() + 'px';            /* 先回標準寬（25%） */
-  fitFilm();
-  let guard = 12;
-  while (guard-- > 0){
-    const r = win.getBoundingClientRect();
-    if (r.height <= avail || r.width <= 240) break;   /* 影像最小 240px */
-    win.style.width = Math.max(240, Math.round(r.width * 0.9)) + 'px';
-    fitFilm();
-  }
-  const r2 = win.getBoundingClientRect();
-  if (r2.height > avail){                          /* 影像到下限仍放不下：文字讓位 */
-    let need = r2.height - avail;
-    [[tip,48],[note,40]].forEach(function(p){
-      const el = p[0];
-      if (!el || need <= 0 || el.offsetHeight < 4) return;
-      const cur = parseFloat(getComputedStyle(el).maxHeight);
-      if (!Number.isFinite(cur) || cur <= p[1]) return;
-      const cut = Math.min(need, cur - p[1]);
-      el.style.maxHeight = (cur - cut) + 'px';
-      need -= cut;
-    });
-  }
-}
-
-
 function filmScale(){
   const w = $('filmWin');
   if (!w){ fitFilm(); autoFit(); return; }
@@ -4360,7 +4336,7 @@ function filmScale(){
     w.style.left = ''; w.style.top = '';
     w.style.width = filmDockW() + 'px';
   }
-  fitFilm(); autoFit(); filmShrinkFit();
+  fitFilm(); autoFit();
 }
 function toggleFilmPop(){
   const on = document.body.classList.toggle('film-pop');
