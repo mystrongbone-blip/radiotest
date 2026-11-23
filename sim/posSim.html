@@ -166,7 +166,7 @@ margin:3px 0 2px;text-align:center}
 .seghd span:first-child{text-align:left}
 .perInfo{font:0.5938rem ui-monospace,monospace;color:#5f6d80}
 /* 影像視窗外框透明，哆啦呦噠讓底下 WebGL canvas 透出來 */
-#filmWin{position:fixed;top:62px;right:16px;width:268px;z-index:25;
+#filmWin{position:fixed;top:10px;right:16px;width:268px;z-index:25;
 background:transparent;border:0;box-shadow:none;display:none;flex-direction:column;overflow:visible}
 #filmHead{padding:5px 9px;font-size:0.7188rem;font-weight:700;color:#cfdae7;
 background:rgba(19,26,35,.98);border:1px solid var(--line);border-bottom:0;
@@ -184,7 +184,7 @@ body.film-narrow:not(.m-ui):not(.film-detail-on):not(.film-pop) #radBox{display:
 body.m-ui:not(.film-detail-on):not(.film-pop) #filmCond,
 body.m-ui:not(.film-detail-on):not(.film-pop) #filmTip,
 body.m-ui:not(.film-detail-on):not(.film-pop) #radBox{display:none}
-#filmWin{position:fixed;top:62px;right:12px;width:280px;z-index:25;
+#filmWin{position:fixed;top:10px;right:12px;width:280px;z-index:25;
 background:transparent;border:0;box-shadow:none;display:none;flex-direction:column;overflow:visible}
 body.mode-sim #filmWin{display:flex}
 body.film-pop #filmWin{top:50%;left:50%;right:auto;transform:translate(-50%,-50%);z-index:88;
@@ -270,6 +270,8 @@ opacity:0;transform:translateY(4px);transition:.16s}
 #editBadge{position:fixed;top:10px;right:14px;z-index:45;display:none;align-items:center;gap:8px;
 background:rgba(190,60,60,.95);color:#fff;border-radius:8px;padding:5px 12px;font-size:0.75rem;
 font-family:inherit;box-shadow:0 4px 14px rgba(0,0,0,.5)}
+body.mode-sim #editBadge{top:48px}
+
 #editBadge.on{display:flex}
 #editBadge button{border:1px solid rgba(255,255,255,.45);background:transparent;color:#fff;
 border-radius:6px;padding:2px 8px;cursor:pointer;font-family:inherit;font-size:0.6875rem}
@@ -391,7 +393,7 @@ body.film-pop #filmNoteWrap{display:none}
 
 /* ===== 桌機右欄：影像大小不變，下方文字框各自內部捲動（滾輪可看完整內容） ===== */
 body.mode-sim:not(.film-pop):not(.m-ui):not(.film-narrow) #filmWin{
-  max-height:calc(100% - 74px);   /* top:62 ＋ 底部留 12px，整張卡收進畫面 */
+  max-height:calc(100% - 22px);   /* top:10 ＋ 底部留 12px */
 }
 body.mode-sim:not(.film-pop):not(.m-ui):not(.film-narrow) #filmHead,
 body.mode-sim:not(.film-pop):not(.m-ui):not(.film-narrow) #filmBoxWrap{flex:none}
@@ -405,7 +407,6 @@ body.mode-sim:not(.film-pop):not(.m-ui):not(.film-narrow) #filmNoteWrap{
 #filmNoteWrap::-webkit-scrollbar{width:6px}
 #filmCond::-webkit-scrollbar-thumb,#filmTip::-webkit-scrollbar-thumb,
 #filmNoteWrap::-webkit-scrollbar-thumb{background:#2b3543;border-radius:3px}
-
 
 /* iOS 橫向鏡頭避讓：滿版背景＋UI 讓開（iframe 內文件自帶 viewport，env() 獨立生效） */
 @media (orientation:landscape){
