@@ -645,7 +645,7 @@ body.fs-mode #btnDocWidth{display:none !important}
   <button id="btnExam" class="purple">📝 考試區</button>
   <button id="btnTrend" class="yellow" title="各科十年考題趨勢分析（可筆記、題號可點開詳解）">📈 考題趨勢</button>
   <button id="btnPosSim" class="brown">🦴 擺位模擬</button>
-  <button id="btnChangeDir" class="tool">📂 更改筆記位置</button>
+  
   <button id="btnBackup" class="tool">💾 匯出備份</button>
   <button id="btnRestore" class="tool">📥 匯入備份</button>
   <button id="btnCompare" style="display:none" class="tool">⚖️ 筆記/詳解對照</button>
@@ -5239,16 +5239,6 @@ function showBackupHelpModal(){
 }
 $('btnBackup').onclick=exportBackup;
 $('btnRestore').onclick=restoreBackup;
-$('btnChangeDir').onclick=async function(){
-  const r=await api('/api/change_dir',{});
-  if(r&&r.ok){
-    showToast('✅ 筆記位置已切換至：'+r.dir);
-    await if(!window.MOBILE_INDEX&&!window.MOBILE_DATA){document.body.insertAdjacentHTML('afterbegin','<div style=\"background:#e11d48;color:#fff;padding:10px;text-align:center;font-size:14px;font-weight:700\">⚠️ 資料檔未載入</div>');}
-loadIndex();
-  }else{
-    showToast((r&&r.msg)||'已取消');
-  }
-};
 $('navBackupActions').onclick=showBackupHelpModal;
 
 let bkSnooze=false;
@@ -7085,6 +7075,7 @@ if(window.MOBILE_DATA||window.MOBILE_INDEX){
     bootDone();
   }).catch(function(){bootDone();});
 }else{
+if(!window.MOBILE_INDEX&&!window.MOBILE_DATA){document.body.insertAdjacentHTML('afterbegin','<div style=\"background:#e11d48;color:#fff;padding:10px;text-align:center;font-size:14px;font-weight:700\">⚠️ 資料檔未載入</div>');}
 loadIndex();
 }
 
