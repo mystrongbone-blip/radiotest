@@ -5239,6 +5239,16 @@ function showBackupHelpModal(){
 }
 $('btnBackup').onclick=exportBackup;
 $('btnRestore').onclick=restoreBackup;
+$('btnChangeDir').onclick=async function(){
+  const r=await api('/api/change_dir',{});
+  if(r&&r.ok){
+    showToast('✅ 筆記位置已切換至：'+r.dir);
+    await if(!window.MOBILE_INDEX&&!window.MOBILE_DATA){document.body.insertAdjacentHTML('afterbegin','<div style=\"background:#e11d48;color:#fff;padding:10px;text-align:center;font-size:14px;font-weight:700\">⚠️ 資料檔未載入</div>');}
+loadIndex();
+  }else{
+    showToast((r&&r.msg)||'已取消');
+  }
+};
 $('navBackupActions').onclick=showBackupHelpModal;
 
 let bkSnooze=false;
@@ -7075,7 +7085,6 @@ if(window.MOBILE_DATA||window.MOBILE_INDEX){
     bootDone();
   }).catch(function(){bootDone();});
 }else{
-if(!window.MOBILE_INDEX&&!window.MOBILE_DATA){document.body.insertAdjacentHTML('afterbegin','<div style=\"background:#e11d48;color:#fff;padding:10px;text-align:center;font-size:14px;font-weight:700\">⚠️ 資料檔未載入</div>');}
 loadIndex();
 }
 
